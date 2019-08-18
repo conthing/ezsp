@@ -1,0 +1,5 @@
+[Serial]
+Name = "COM5"
+Baud = 57600
+RtsCts = false
+
