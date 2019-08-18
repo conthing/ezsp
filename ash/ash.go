@@ -18,6 +18,7 @@ const (
 	ASH_CONTROLBYTE_RETX   = byte(0x08)
 )
 
+var ashResetSuccess = false
 var ashRecvRstackFrame = make(chan byte, 1)
 var ashNeedSendProcess = make(chan byte, 16) //AshWrite会被不同的线程调用
 
@@ -28,11 +29,10 @@ var ashLastRejectCondition = false
 var ashRecvNakFrame = false
 var ashRecvErrorFrame []byte
 
-var ashSendTime time.Time //最近一次发送的时间，用来判断超时重发 todo 这个时间使用有问题
+//最近一次发送的时间，用来判断超时重发
+var ashSendTime *time.Time // todo 这个时间使用有问题 send 和 resend 同时存在时
 
-//var rxbuffer [8][]byte
-//var rxGetPtr byte             /*接收处理的偏移，小于ackNumNext*/
-var rxIndexNext = byte(7)     /*下一个接收报文的index，自己报文中的ackNum*/
+var rxIndexNext byte          /*下一个接收报文的index，自己报文中的ackNum*/
 var rxIndexNextSent = byte(7) /*已经发送出去的ackNum*/
 
 var txbuffer [8][]byte
@@ -44,6 +44,37 @@ var AshRecv func([]byte) error
 
 func ashTrace(format string, v ...interface{}) {
 	//common.Log.Debugf(format, v...)
+}
+
+// InitVariables 在AshReset成功后必须调用，恢复原始的状态
+func InitVariables() {
+	// 清空 ashNeedSendProcess
+	select {
+	case <-ashNeedSendProcess:
+	default:
+	}
+
+	ashRejectCondition = false
+	ashImmediatelyAck = false
+	ashLastRejectCondition = false
+
+	ashRecvNakFrame = false
+	ashRecvErrorFrame = nil
+
+	ashSendTime = nil
+
+	rxIndexNext = 0
+	rxIndexNextSent = byte(7) /*已经发送出去的ackNum*/
+
+	for i := range txbuffer {
+		txbuffer[i] = nil
+	}
+	txPutPtr = 0
+	txIndexNext = 0       /*下一个发送报文的index，自己报文中的frmNum*/
+	txIndexConfirming = 0 /*正在等待ACK的报文index*/
+
+	// 最后 ashResetSuccess 变有效
+	ashResetSuccess = true
 }
 
 func inc(index byte) byte {
@@ -117,8 +148,7 @@ func ackNumProcess(ackNum byte) error {
 		}
 		return nil
 	}
-	common.Log.Errorf("txIndexNext(%d) < ackNum(%d)", txIndexNext, ackNum)
-	return fmt.Errorf("ASH recv ackNum ahead of send frmNum")
+	return fmt.Errorf("ASH recv ackNum(%d) ahead of send frmNum(%d)", ackNum, txIndexNext)
 }
 
 // ashRecvFrame 接收报文处理
@@ -132,7 +162,33 @@ func ashRecvFrame(frame []byte) error {
 	frmNum := byte((control >> 4) & 7)
 	ackNum := byte(control & 7)
 	reTx := bool((control & 8) == 8)
-	if byte(control&0x80) == ASH_CONTROLBYTE_DATA {
+	if control == ASH_CONTROLBYTE_RSTACK {
+		if len(frame) == 3 {
+			ashTrace("ASH recv RSTACK frame < %x", frame)
+			if frame[1] != 0x02 {
+				ashRejectCondition = true
+				return fmt.Errorf("ASH recv unknown version in RSTACK frame")
+			}
+			ashRecvRstackFrame <- frame[2]
+		} else {
+			ashRejectCondition = true
+			return fmt.Errorf("ASH recv RSTACK frame length error < %x", frame)
+		}
+	} else if control == ASH_CONTROLBYTE_ERROR {
+		if len(frame) == 3 {
+			common.Log.Warnf("ASH recv ERROR frame < %x", frame) //todo 测试下ERROR frame的格式
+			if frame[1] != 0x02 {
+				ashRejectCondition = true
+				return fmt.Errorf("ASH recv unknown version in ERROR frame")
+			}
+			ashRecvErrorFrame = frame[2:]
+		} else {
+			ashRejectCondition = true
+			return fmt.Errorf("ASH recv ERROR frame length error < %x", frame)
+		}
+	} else if ashResetSuccess == false { // RSTACK 没收到之前不应该收到其他报文
+		return fmt.Errorf("ASH recv other frame before RSTACK < %x", frame)
+	} else if byte(control&0x80) == ASH_CONTROLBYTE_DATA {
 		dataFrmPseudoRandom(frame[1:])
 		err := ackNumProcess(ackNum)
 		if err != nil {
@@ -144,7 +200,6 @@ func ashRecvFrame(frame []byte) error {
 		if frmNum == rxIndexNext {
 			rxIndexNext = inc(rxIndexNext)
 			ashTrace("ASH recv < %x", frame)
-			//rxbuffer[frmNum] = frame[1:]
 			if AshRecv != nil {
 				err = AshRecv(frame[1:])
 				if err != nil {
@@ -190,33 +245,9 @@ func ashRecvFrame(frame []byte) error {
 			ashRejectCondition = true
 			return fmt.Errorf("ASH recv NAK frame length error < %x", frame)
 		}
-	} else if control == ASH_CONTROLBYTE_RSTACK {
-		if len(frame) == 3 {
-			ashTrace("ASH recv RSTACK frame < %x", frame)
-			if frame[1] != 0x02 {
-				ashRejectCondition = true
-				return fmt.Errorf("unknown ASH version in RSTACK frame")
-			}
-			ashRecvRstackFrame <- frame[2]
-		} else {
-			ashRejectCondition = true
-			return fmt.Errorf("ASH recv RSTACK frame length error < %x", frame)
-		}
-	} else if control == ASH_CONTROLBYTE_ERROR {
-		if len(frame) == 3 {
-			common.Log.Warnf("ASH recv ERROR frame < %x", frame) //todo 测试下ERROR frame的格式
-			if frame[1] != 0x02 {
-				ashRejectCondition = true
-				return fmt.Errorf("unknown ASH version in ERROR frame")
-			}
-			ashRecvErrorFrame = frame[2:]
-		} else {
-			ashRejectCondition = true
-			return fmt.Errorf("ASH recv ERROR frame length error < %x", frame)
-		}
 	} else {
 		ashRejectCondition = true
-		return fmt.Errorf("unknown frame control 0x%x", control)
+		return fmt.Errorf("ASH recv unknown frame control 0x%x", control)
 	}
 
 	return nil
@@ -251,7 +282,8 @@ func ashResendProcess() bool {
 		if err != nil {
 			common.Log.Errorf("ASH resend failed: %v", err)
 		}
-		ashSendTime = time.Now()
+		now := time.Now()
+		ashSendTime = &now
 		return true
 	}
 	return false
@@ -267,7 +299,8 @@ func ashSendProcess() bool {
 			if err != nil {
 				common.Log.Errorf("ASH send failed: %v", err)
 			}
-			ashSendTime = time.Now()
+			now := time.Now()
+			ashSendTime = &now
 			return true
 		}
 	}
@@ -312,32 +345,29 @@ func ashTransceiver(errChan chan error) {
 				return
 			}
 
-			if ashRecvNakFrame {
-				ashRecvNakFrame = false
+			if ashResetSuccess { // 没收到RSTACK之前不处理
+				if ashRecvNakFrame {
+					ashRecvNakFrame = false
+					resent = ashResendProcess()
+				}
+				/*重发和发送ACK的处理，最好在所有收到的报文处理完后进行一次性调用*/
+				ashAckProcess()
+			}
+		}
+		if ashResetSuccess { // 没收到RSTACK之前不处理
+			if resent == false && ashSendTime != nil && time.Now().After(ashSendTime.Add(time.Millisecond*1000)) {
 				resent = ashResendProcess()
 			}
-			/*重发和发送ACK的处理，最好在所有收到的报文处理完后进行一次性调用*/
-			ashAckProcess()
+			_ = ashSendProcess()
 		}
-		if resent == false && time.Now().After(ashSendTime.Add(time.Millisecond*1000)) {
-			resent = ashResendProcess()
-		}
-		_ = ashSendProcess()
 	}
 }
 
-// AshRead 读取收到的报文
-//func AshRead() []byte {
-//	ret := rxbuffer[rxGetPtr]
-//	if nil != ret {
-//		rxbuffer[rxGetPtr] = nil
-//		rxGetPtr = inc(rxGetPtr)
-//	}
-//	return ret
-//}
-
 // AshSend 写发送报文缓存
 func AshSend(data []byte) error {
+	if ashResetSuccess != true {
+		return fmt.Errorf("ASH RST not finished")
+	}
 	if txbuffer[txPutPtr] != nil {
 		return fmt.Errorf("ASH write overflow")
 	}
@@ -349,10 +379,17 @@ func AshSend(data []byte) error {
 
 // AshReset 复位NCP
 func AshReset() error {
-	common.Log.Debug("ASH Reset")
+	ashTrace("ASH RST")
 	err := ashSendCancelByte()
 	if err != nil {
-		return fmt.Errorf("ASH reset failed: %v", err)
+		return fmt.Errorf("ASH RST failed: %v", err)
+	}
+
+	ashResetSuccess = false
+	// 清空 ashRecvRstackFrame
+	select {
+	case <-ashRecvRstackFrame:
+	default:
 	}
 
 	for i := 0; i < 5; i++ {
@@ -360,18 +397,17 @@ func AshReset() error {
 
 		select {
 		case rstcode := <-ashRecvRstackFrame:
-			common.Log.Debugf("ASH RSTACK 0x%x", rstcode)
-			// todo 初始化变量
-			rxIndexNext = 0
+			ashTrace("ASH RSTACK 0x%x", rstcode)
 			return nil
 		case <-time.After(time.Millisecond * 3000):
-			common.Log.Errorf("ASH Reset miss RSTACK")
+			common.Log.Errorf("ASH RST miss RSTACK")
 		}
 	}
 	return fmt.Errorf("ASH failed to recv RSTACK after 5 retry")
 }
 
-// AshStartTransceiver 开启串口收发线程
-func AshStartTransceiver(errChan chan error) {
+// AshStartTransceiver 开启串口收发线程，AshReset前就要运行起来
+func AshStartTransceiver(recvFunc func([]byte) error, errChan chan error) {
+	AshRecv = recvFunc
 	go ashTransceiver(errChan)
 }

@@ -72,11 +72,11 @@ func ashFrameRxByteParse(recvChar byte) (err error) {
 
 		if readBufferOffset <= 2 {
 			common.Log.Warnf("rx frame too short < %x", readBuffer[:readBufferOffset])
-			err = fmt.Errorf("recv frame too short < %x", readBuffer[:readBufferOffset])
+			err = fmt.Errorf("rx frame too short < %x", readBuffer[:readBufferOffset])
 		} else if crc16 != 0 {
 			common.Log.Warnf("rx frame crc error < %x", readBuffer[:readBufferOffset])
 			_ = ashRecvFrame(nil) //crc不对发送NAK
-			err = fmt.Errorf("recv frame crc error < %x", readBuffer[:readBufferOffset])
+			err = fmt.Errorf("rx frame crc error < %x", readBuffer[:readBufferOffset])
 		} else {
 			ashFrameTrace("rx < %x", readBuffer[:readBufferOffset])
 			err = ashRecvFrame(readBuffer[:readBufferOffset-2])
@@ -94,12 +94,12 @@ func ashFrameRxByteParse(recvChar byte) (err error) {
 
 func ashSendCancelByte() error {
 	if ashSerial == nil {
-		return fmt.Errorf("failed to send cancel byte. serial port not open")
+		return fmt.Errorf("tx CANCEL failed. serial port not open")
 	}
 
 	_, err := ashSerial.Write([]byte{ASH_CAN})
 	if err != nil {
-		return fmt.Errorf("failed to send ASH_CAN. %v", err)
+		return fmt.Errorf("tx CANCEL failed. %v", err)
 	}
 	ashFrameTrace("tx CANCEL")
 	return nil
@@ -107,7 +107,7 @@ func ashSendCancelByte() error {
 
 func ashSendFrame(frame []byte) error {
 	if ashSerial == nil {
-		return fmt.Errorf("failed to send frame. serial port not open")
+		return fmt.Errorf("tx failed. serial port not open")
 	}
 
 	var writeBuffer []byte
@@ -123,7 +123,7 @@ func ashSendFrame(frame []byte) error {
 
 	_, err := ashSerial.Write(writeBuffer)
 	if err != nil {
-		return fmt.Errorf("failed to send frame. %v", err)
+		return fmt.Errorf("tx %x failed. %v", writeBuffer, err)
 	}
 	ashFrameTrace("tx > %x", writeBuffer)
 	return nil

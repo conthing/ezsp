@@ -63,7 +63,7 @@ func main() {
 	errs := make(chan error, 3)
 
 	listenForInterrupt(errs)
-	ash.AshStartTransceiver(errs)
+	ash.AshStartTransceiver(ezsp.AshRecvImp, errs)
 	//startHTTPServer(errs, cfg.HTTP.Port)
 	startTickRunning(errs)
 
