@@ -24,6 +24,13 @@ func TickRunning(_ chan error) {
 		common.Log.Infof("EzspVersion return: %x %x %x", protocolVersion, stackType, stackVersion)
 	}
 
+	emberVersion, err := EzspGetValue_VERSION_INFO()
+	if err != nil {
+		common.Log.Errorf("EzspGetValue_VERSION_INFO failed: %v", err)
+	} else {
+		common.Log.Infof("EzspGetValue_VERSION_INFO return: %+v", emberVersion)
+	}
+
 	err = EzspCallback()
 	if err != nil {
 		common.Log.Errorf("EzspCallback failed: %v", err)
