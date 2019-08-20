@@ -9,6 +9,7 @@ import (
 
 	"github.com/conthing/ezsp/ash"
 	"github.com/conthing/ezsp/ezsp"
+	"github.com/conthing/ezsp/zgb"
 	"github.com/conthing/utils/common"
 )
 
@@ -82,5 +83,5 @@ func listenForInterrupt(errChan chan error) {
 }
 
 func startTickRunning(errChan chan error) {
-	go ezsp.TickRunning(errChan)
+	go zgb.TickRunning(errChan)
 }

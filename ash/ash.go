@@ -35,7 +35,7 @@ var ashSendTime *time.Time // todo 这个时间使用有问题 send 和 resend �
 var rxIndexNext byte          /*下一个接收报文的index，自己报文中的ackNum*/
 var rxIndexNextSent = byte(7) /*已经发送出去的ackNum*/
 
-var txbuffer [8][]byte
+var txbuffer [8][]byte //todo 发送失败怎么清空
 var txPutPtr byte
 var txIndexNext byte       /*下一个发送报文的index，自己报文中的frmNum*/
 var txIndexConfirming byte /*正在等待ACK的报文index*/

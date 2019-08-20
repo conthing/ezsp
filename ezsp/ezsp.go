@@ -1,53 +1,48 @@
 package ezsp
 
 import (
-	"github.com/conthing/ezsp/ash"
+	"fmt"
+
 	"github.com/conthing/utils/common"
 )
 
-//TickRunning 定时运行tick
-func TickRunning(_ chan error) {
+var ncpProtocolVersion byte
+var ncpStackType byte
+var ncpStackVersion string
 
-	err := ash.AshReset()
+func NcpGetVersion() (err error) {
+	var stackVersion uint16
+	ncpProtocolVersion, ncpStackType, stackVersion, err = EzspVersion(EZSP_PROTOCOL_VERSION)
 	if err != nil {
-		common.Log.Errorf("AshReset failed: %v", err)
-	} else {
-		EzspFrameInitVariables() // 有些变量在ASH的接收线程里会被使用
-		ash.InitVariables()      // 上层的变量初始化完成后，最后调用ASH的变量初始化
-		common.Log.Info("AshReset OK")
-	}
-
-	protocolVersion, stackType, stackVersion, err := EzspVersion(EZSP_PROTOCOL_VERSION)
-	if err != nil {
-		common.Log.Errorf("EzspVersion failed: %v", err)
-	} else {
-		common.Log.Infof("EzspVersion return: %x %x %x", protocolVersion, stackType, stackVersion)
+		return fmt.Errorf("EzspVersion failed: %v", err)
 	}
 
 	emberVersion, err := EzspGetValue_VERSION_INFO()
 	if err != nil {
 		common.Log.Errorf("EzspGetValue_VERSION_INFO failed: %v", err)
+		ncpStackVersion = fmt.Sprintf("%d.%d.%d.%d", (stackVersion>>12)&0xF, (stackVersion>>8)&0xF, (stackVersion>>4)&0xF, stackVersion&0xF)
 	} else {
-		common.Log.Infof("EzspGetValue_VERSION_INFO return: %+v", emberVersion)
+		ncpStackVersion = emberVersion.String()
 	}
 
-	err = EzspCallback()
-	if err != nil {
-		common.Log.Errorf("EzspCallback failed: %v", err)
-	} else {
-		common.Log.Debugf("EzspCallback return OK")
-	}
-
-	for {
-		select {
-		case cb := <-callbackCh:
-			EzspCallbackDispatch(cb)
-		}
-
-	}
+	common.Log.Infof("NcpGetVersion: protocolVersion(%d) stackType(%d) stackVersion(%s)", ncpProtocolVersion, ncpStackType, ncpStackVersion)
+	return nil
 }
 
-const (
-	EZSP_PROTOCOL_VERSION = byte(0x04)
-	EZSP_STACK_TYPE_MESH  = byte(0x02)
-)
+func NcpPrintAllConfigurations() {
+	for configId, name := range configIDNameMap {
+		value, err := EzspGetConfigurationValue(configId)
+		if err != nil {
+			common.Log.Errorf("EZSP get %s failed: %v", name, err)
+		}
+		common.Log.Infof("EZSP config %s = %d", name, value)
+	}
+
+}
+
+func NcpTick() {
+	select {
+	case cb := <-callbackCh:
+		EzspCallbackDispatch(cb)
+	}
+}

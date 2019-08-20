@@ -8,6 +8,15 @@ import (
 	"github.com/conthing/utils/common"
 )
 
+type EzspError struct {
+	EzspStatus byte
+	OccurAt    string
+}
+
+func (e EzspError) Error() string {
+	return fmt.Sprintf("%s get error ezspStatus(%s)", e.OccurAt, ezspStatusToString(e.EzspStatus))
+}
+
 func ezspApiTrace(format string, v ...interface{}) {
 	common.Log.Debugf(format, v...)
 }
@@ -46,13 +55,6 @@ func generalResponseLengthNoLessThan(response *EzspFrame, cmdID byte, respLen in
 	return nil
 }
 
-func generalResponseEzspStatusSuccess(prefix string, ezspStatus byte) error {
-	if ezspStatus != EZSP_SUCCESS {
-		return fmt.Errorf("%s get error ezspStatus(%s)", prefix, ezspStatusToString(ezspStatus))
-	}
-	return nil
-}
-
 func EzspVersion(desiredProtocolVersion byte) (protocolVersion byte, stackType byte, stackVersion uint16, err error) {
 	response, err := EzspFrameSend(EZSP_VERSION, []byte{desiredProtocolVersion})
 	if err == nil {
@@ -62,34 +64,75 @@ func EzspVersion(desiredProtocolVersion byte) (protocolVersion byte, stackType b
 			if err == nil {
 				protocolVersion = response.Data[0]
 				stackType = response.Data[1]
-				stackVersion = littleEndianUint16(response.Data[2:4])
+				stackVersion = littleEndianUint16(response.Data[2:])
 				if desiredProtocolVersion != protocolVersion {
 					err = fmt.Errorf("EzspVersion get unexpected protocolVersion(0x%x) != desired(0x%x)", protocolVersion, desiredProtocolVersion)
 					return
 				}
 				ezspApiTrace("EzspVersion get protocolVersion(0x%x) stackType(0x%x) stackVersion(0x%x)", protocolVersion, stackType, stackVersion)
-				//return
 			}
 		}
 	}
 	return
 }
 
-func EzspGetValue(valueId byte) (ezspStatus byte, value []byte, err error) {
+func EzspGetValue(valueId byte) (value []byte, err error) {
 	response, err := EzspFrameSend(EZSP_GET_VALUE, []byte{valueId})
 	if err == nil {
 		err = generalResponseError(response, EZSP_GET_VALUE)
 		if err == nil {
 			err = generalResponseLengthNoLessThan(response, EZSP_GET_VALUE, 2)
 			if err == nil {
-				ezspStatus = response.Data[0]
+				ezspStatus := response.Data[0]
 				valueLength := response.Data[1]
 				err = generalResponseLengthEqual(response, EZSP_GET_VALUE, 2+int(valueLength))
 				if err == nil {
+					if ezspStatus != EZSP_SUCCESS {
+						err = EzspError{ezspStatus, fmt.Sprintf("EzspGetValue(0x%x)", valueId)}
+						return
+					}
 					value = response.Data[2:]
-					ezspApiTrace("EzspGetValue(0x%x) get ezspStatus(%s) value(0x%x)", valueId, ezspStatusToString(ezspStatus), value)
-					//return
+					ezspApiTrace("EzspGetValue(0x%x) get value(0x%x)", valueId, value)
 				}
+			}
+		}
+	}
+	return
+}
+
+func EzspGetConfigurationValue(configId byte) (value uint16, err error) {
+	response, err := EzspFrameSend(EZSP_GET_CONFIGURATION_VALUE, []byte{configId})
+	if err == nil {
+		err = generalResponseError(response, EZSP_GET_CONFIGURATION_VALUE)
+		if err == nil {
+			err = generalResponseLengthEqual(response, EZSP_GET_CONFIGURATION_VALUE, 3)
+			if err == nil {
+				ezspStatus := response.Data[0]
+				value = littleEndianUint16(response.Data[1:])
+				if ezspStatus != EZSP_SUCCESS {
+					err = EzspError{ezspStatus, fmt.Sprintf("EzspGetConfigurationValue(%s)", configIDToName(configId))}
+					return
+				}
+				ezspApiTrace("EzspGetConfigurationValue(%s) get 0x%x", configIDToName(configId), value)
+			}
+		}
+	}
+	return
+}
+
+func EzspSetConfigurationValue(configId byte, value uint16) (err error) {
+	response, err := EzspFrameSend(EZSP_SET_CONFIGURATION_VALUE, []byte{configId, byte(value), byte(value >> 8)})
+	if err == nil {
+		err = generalResponseError(response, EZSP_SET_CONFIGURATION_VALUE)
+		if err == nil {
+			err = generalResponseLengthEqual(response, EZSP_SET_CONFIGURATION_VALUE, 1)
+			if err == nil {
+				ezspStatus := response.Data[0]
+				if ezspStatus != EZSP_SUCCESS {
+					err = EzspError{ezspStatus, fmt.Sprintf("EzspSetConfigurationValue(0x%x, 0x%x)", configId, value)}
+					return
+				}
+				ezspApiTrace("EzspSetConfigurationValue(0x%x, 0x%x) success", configId, value)
 			}
 		}
 	}
@@ -107,17 +150,24 @@ type EmberVersion struct {
 	VerType byte
 }
 
+func (v EmberVersion) String() (str string) {
+	str = fmt.Sprintf("%d.%d.%d.%d build %d",
+		v.Major,
+		v.Minor,
+		v.Patch,
+		v.Special,
+		v.Build)
+	return
+}
+
 func EzspGetValue_VERSION_INFO() (emberVersion *EmberVersion, err error) {
-	ezspStatus, value, err := EzspGetValue(EZSP_VALUE_VERSION_INFO)
+	value, err := EzspGetValue(EZSP_VALUE_VERSION_INFO)
 	if err == nil {
-		err = generalResponseEzspStatusSuccess("EzspGetValue_VERSION_INFO", ezspStatus)
-		if err == nil {
-			if len(value) != 7 {
-				err = fmt.Errorf("EzspGetValue_VERSION_INFO get invalid value length expect(%d) get(%d)", 7, len(value))
-				return
-			}
-			emberVersion = &EmberVersion{Build: littleEndianUint16(value), Major: value[2], Minor: value[3], Patch: value[4], Special: value[5], VerType: value[6]}
+		if len(value) != 7 {
+			err = fmt.Errorf("EzspGetValue_VERSION_INFO get invalid value length expect(%d) get(%d)", 7, len(value))
+			return
 		}
+		emberVersion = &EmberVersion{Build: littleEndianUint16(value), Major: value[2], Minor: value[3], Patch: value[4], Special: value[5], VerType: value[6]}
 	}
 	return
 }

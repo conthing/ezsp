@@ -742,6 +742,194 @@ var allCallbackIDs = [...]byte{
 	EZSP_RF4CE_UNPAIR_COMPLETE_HANDLER,
 }
 
+// **************** Config ID ****************
+const (
+	// The number of packet buffers available to the stack.
+	EZSP_CONFIG_PACKET_BUFFER_COUNT = byte(0x01)
+	// The maximum number of router neighbors the stack can keep track of. A
+	// neighbor is a node within radio range.
+	EZSP_CONFIG_NEIGHBOR_TABLE_SIZE = byte(0x02)
+	// The maximum number of APS retried messages the stack can be transmitting at
+	// any time.
+	EZSP_CONFIG_APS_UNICAST_MESSAGE_COUNT = byte(0x03)
+	// The maximum number of non-volatile bindings supported by the stack.
+	EZSP_CONFIG_BINDING_TABLE_SIZE = byte(0x04)
+	// The maximum number of EUI64 to network address associations that the stack
+	// can maintain.
+	EZSP_CONFIG_ADDRESS_TABLE_SIZE = byte(0x05)
+	// The maximum number of multicast groups that the device may be a member of.
+	EZSP_CONFIG_MULTICAST_TABLE_SIZE = byte(0x06)
+	// The maximum number of destinations to which a node can route messages. This
+	// includes both messages originating at this node and those relayed for
+	// others.
+	EZSP_CONFIG_ROUTE_TABLE_SIZE = byte(0x07)
+	// The number of simultaneous route discoveries that a node will support.
+	EZSP_CONFIG_DISCOVERY_TABLE_SIZE = byte(0x08)
+	// The size of the alarm broadcast buffer.
+	EZSP_CONFIG_BROADCAST_ALARM_DATA_SIZE = byte(0x09)
+	// The size of the unicast alarm buffers allocated for end device children.
+	EZSP_CONFIG_UNICAST_ALARM_DATA_SIZE = byte(0x0A)
+	// Specifies the stack profile.
+	EZSP_CONFIG_STACK_PROFILE = byte(0x0C)
+	// The security level used for security at the MAC and network layers. The
+	// supported values are 0 (no security) and 5 (payload is encrypted and a
+	// four-byte MIC is used for authentication).
+	EZSP_CONFIG_SECURITY_LEVEL = byte(0x0D)
+	// The maximum number of hops for a message.
+	EZSP_CONFIG_MAX_HOPS = byte(0x10)
+	// The maximum number of end device children that a router will support.
+	EZSP_CONFIG_MAX_END_DEVICE_CHILDREN = byte(0x11)
+	// The maximum amount of time that the MAC will hold a message for indirect
+	// transmission to a child.
+	EZSP_CONFIG_INDIRECT_TRANSMISSION_TIMEOUT = byte(0x12)
+	// The maximum amount of time that an end device child can wait between polls.
+	// If no poll is heard within this timeout, then the parent removes the end
+	// device from its tables.
+	EZSP_CONFIG_END_DEVICE_POLL_TIMEOUT = byte(0x13)
+	// The maximum amount of time that a mobile node can wait between polls. If no
+	// poll is heard within this timeout, then the parent removes the mobile node
+	// from its tables.
+	EZSP_CONFIG_MOBILE_NODE_POLL_TIMEOUT = byte(0x14)
+	// The number of child table entries reserved for use only by mobile nodes.
+	EZSP_CONFIG_RESERVED_MOBILE_CHILD_ENTRIES = byte(0x15)
+	// Enables boost power mode and/or the alternate transmitter output.
+	EZSP_CONFIG_TX_POWER_MODE = byte(0x17)
+	// 0: Allow this node to relay messages. 1: Prevent this node from relaying
+	// messages.
+	EZSP_CONFIG_DISABLE_RELAY = byte(0x18)
+	// The maximum number of EUI64 to network address associations that the Trust
+	// Center can maintain.
+	EZSP_CONFIG_TRUST_CENTER_ADDRESS_CACHE_SIZE = byte(0x19)
+	// The size of the source route table.
+	EZSP_CONFIG_SOURCE_ROUTE_TABLE_SIZE = byte(0x1A)
+	// The units used for timing out end devices on their parents.
+	EZSP_CONFIG_END_DEVICE_POLL_TIMEOUT_SHIFT = byte(0x1B)
+	// The number of blocks of a fragmented message that can be sent in a single
+	// window.
+	EZSP_CONFIG_FRAGMENT_WINDOW_SIZE = byte(0x1C)
+	// The time the stack will wait (in milliseconds) between sending blocks of a
+	// fragmented message.
+	EZSP_CONFIG_FRAGMENT_DELAY_MS = byte(0x1D)
+	// The size of the Key Table used for storing individual link keys (if the
+	// device is a Trust Center) or Application Link Keys (if the device is a
+	// normal node).
+	EZSP_CONFIG_KEY_TABLE_SIZE = byte(0x1E)
+	// The APS ACK timeout value. The stack waits this amount of time between
+	// resends of APS retried messages.
+	EZSP_CONFIG_APS_ACK_TIMEOUT = byte(0x1F)
+	// The duration of an active scan, in the units used by the 15.4 scan
+	// parameter (((1 << duration) + 1) * 15ms). This also controls the jitter
+	// used when responding to a beacon request.
+	EZSP_CONFIG_ACTIVE_SCAN_DURATION = byte(0x20)
+	// The time the coordinator will wait (in seconds) for a second end device
+	// bind request to arrive.
+	EZSP_CONFIG_END_DEVICE_BIND_TIMEOUT = byte(0x21)
+	// The number of PAN id conflict reports that must be received by the network
+	// manager within one minute to trigger a PAN id change.
+	EZSP_CONFIG_PAN_ID_CONFLICT_REPORT_THRESHOLD = byte(0x22)
+	// The timeout value in minutes for how long the Trust Center or a normal node
+	// waits for the ZigBee Request Key to complete. On the Trust Center this
+	// controls whether or not the device buffers the request, waiting for a
+	// matching pair of ZigBee Request Key. If the value is non-zero, the Trust
+	// Center buffers and waits for that amount of time. If the value is zero, the
+	// Trust Center does not buffer the request and immediately responds to the
+	// request. Zero is the most compliant behavior.
+	EZSP_CONFIG_REQUEST_KEY_TIMEOUT = byte(0x24)
+	// This value indicates the size of the runtime modifiable certificate table.
+	// Normally certificates are stored in MFG tokens but this table can be used
+	// to field upgrade devices with new Smart Energy certificates. This value
+	// cannot be set, it can only be queried.
+	EZSP_CONFIG_CERTIFICATE_TABLE_SIZE = byte(0x29)
+	// This is a bitmask that controls which incoming ZDO request messages are
+	// passed to the application. The bits are defined in the
+	// EmberZdoConfigurationFlags enumeration. To see if the application is
+	// required to send a ZDO response in reply to an incoming message, the
+	// application must check the APS options bitfield within the
+	// incomingMessageHandler callback to see if the
+	// EMBER_APS_OPTION_ZDO_RESPONSE_REQUIRED flag is set.
+	EZSP_CONFIG_APPLICATION_ZDO_FLAGS = byte(0x2A)
+	// The maximum number of broadcasts during a single broadcast timeout period.
+	EZSP_CONFIG_BROADCAST_TABLE_SIZE = byte(0x2B)
+	// The size of the MAC filter list table.
+	EZSP_CONFIG_MAC_FILTER_TABLE_SIZE = byte(0x2C)
+	// The number of supported networks.
+	EZSP_CONFIG_SUPPORTED_NETWORKS = byte(0x2D)
+	// Whether multicasts are sent to the RxOnWhenIdle=TRUE address (0xFFFD) or
+	// the sleepy broadcast address (0xFFFF). The RxOnWhenIdle=TRUE address is the
+	// ZigBee compliant destination for multicasts.
+	EZSP_CONFIG_SEND_MULTICASTS_TO_SLEEPY_ADDRESS = byte(0x2E)
+	// ZLL group address initial configuration.
+	EZSP_CONFIG_ZLL_GROUP_ADDRESSES = byte(0x2F)
+	// ZLL rssi threshold initial configuration.
+	EZSP_CONFIG_ZLL_RSSI_THRESHOLD = byte(0x30)
+	// RF4CE pairing table size.
+	EZSP_CONFIG_RF4CE_PAIRING_TABLE_SIZE = byte(0x31)
+	// RF4CE pending outgoing packet table size.
+	EZSP_CONFIG_RF4CE_PENDING_OUTGOING_PACKET_TABLE_SIZE = byte(0x32)
+	// Toggles the mtorr flow control in the stack.
+	EZSP_CONFIG_MTORR_FLOW_CONTROL = byte(0x33)
+	// This is a reserved frame for testing
+	EZSP_CONFIG_NETWORK_TEST_PARAMETER_1 = byte(0x34)
+	// This is a reserved frame for testing
+	EZSP_CONFIG_NETWORK_TEST_PARAMETER_2 = byte(0x35)
+)
+
+// ID to string
+func configIDToName(id byte) string {
+	name, ok := configIDNameMap[id]
+	if !ok {
+		name = fmt.Sprintf("UNKNOWN_CONFIGID_%02X", id)
+	}
+	return name
+}
+
+var configIDNameMap = map[byte]string{
+	EZSP_CONFIG_PACKET_BUFFER_COUNT:                      "EZSP_CONFIG_PACKET_BUFFER_COUNT",
+	EZSP_CONFIG_NEIGHBOR_TABLE_SIZE:                      "EZSP_CONFIG_NEIGHBOR_TABLE_SIZE",
+	EZSP_CONFIG_APS_UNICAST_MESSAGE_COUNT:                "EZSP_CONFIG_APS_UNICAST_MESSAGE_COUNT",
+	EZSP_CONFIG_BINDING_TABLE_SIZE:                       "EZSP_CONFIG_BINDING_TABLE_SIZE",
+	EZSP_CONFIG_ADDRESS_TABLE_SIZE:                       "EZSP_CONFIG_ADDRESS_TABLE_SIZE",
+	EZSP_CONFIG_MULTICAST_TABLE_SIZE:                     "EZSP_CONFIG_MULTICAST_TABLE_SIZE",
+	EZSP_CONFIG_ROUTE_TABLE_SIZE:                         "EZSP_CONFIG_ROUTE_TABLE_SIZE",
+	EZSP_CONFIG_DISCOVERY_TABLE_SIZE:                     "EZSP_CONFIG_DISCOVERY_TABLE_SIZE",
+	EZSP_CONFIG_BROADCAST_ALARM_DATA_SIZE:                "EZSP_CONFIG_BROADCAST_ALARM_DATA_SIZE",
+	EZSP_CONFIG_UNICAST_ALARM_DATA_SIZE:                  "EZSP_CONFIG_UNICAST_ALARM_DATA_SIZE",
+	EZSP_CONFIG_STACK_PROFILE:                            "EZSP_CONFIG_STACK_PROFILE",
+	EZSP_CONFIG_SECURITY_LEVEL:                           "EZSP_CONFIG_SECURITY_LEVEL",
+	EZSP_CONFIG_MAX_HOPS:                                 "EZSP_CONFIG_MAX_HOPS",
+	EZSP_CONFIG_MAX_END_DEVICE_CHILDREN:                  "EZSP_CONFIG_MAX_END_DEVICE_CHILDREN",
+	EZSP_CONFIG_INDIRECT_TRANSMISSION_TIMEOUT:            "EZSP_CONFIG_INDIRECT_TRANSMISSION_TIMEOUT",
+	EZSP_CONFIG_END_DEVICE_POLL_TIMEOUT:                  "EZSP_CONFIG_END_DEVICE_POLL_TIMEOUT",
+	EZSP_CONFIG_MOBILE_NODE_POLL_TIMEOUT:                 "EZSP_CONFIG_MOBILE_NODE_POLL_TIMEOUT",
+	EZSP_CONFIG_RESERVED_MOBILE_CHILD_ENTRIES:            "EZSP_CONFIG_RESERVED_MOBILE_CHILD_ENTRIES",
+	EZSP_CONFIG_TX_POWER_MODE:                            "EZSP_CONFIG_TX_POWER_MODE",
+	EZSP_CONFIG_DISABLE_RELAY:                            "EZSP_CONFIG_DISABLE_RELAY",
+	EZSP_CONFIG_TRUST_CENTER_ADDRESS_CACHE_SIZE:          "EZSP_CONFIG_TRUST_CENTER_ADDRESS_CACHE_SIZE",
+	EZSP_CONFIG_SOURCE_ROUTE_TABLE_SIZE:                  "EZSP_CONFIG_SOURCE_ROUTE_TABLE_SIZE",
+	EZSP_CONFIG_END_DEVICE_POLL_TIMEOUT_SHIFT:            "EZSP_CONFIG_END_DEVICE_POLL_TIMEOUT_SHIFT",
+	EZSP_CONFIG_FRAGMENT_WINDOW_SIZE:                     "EZSP_CONFIG_FRAGMENT_WINDOW_SIZE",
+	EZSP_CONFIG_FRAGMENT_DELAY_MS:                        "EZSP_CONFIG_FRAGMENT_DELAY_MS",
+	EZSP_CONFIG_KEY_TABLE_SIZE:                           "EZSP_CONFIG_KEY_TABLE_SIZE",
+	EZSP_CONFIG_APS_ACK_TIMEOUT:                          "EZSP_CONFIG_APS_ACK_TIMEOUT",
+	EZSP_CONFIG_ACTIVE_SCAN_DURATION:                     "EZSP_CONFIG_ACTIVE_SCAN_DURATION",
+	EZSP_CONFIG_END_DEVICE_BIND_TIMEOUT:                  "EZSP_CONFIG_END_DEVICE_BIND_TIMEOUT",
+	EZSP_CONFIG_PAN_ID_CONFLICT_REPORT_THRESHOLD:         "EZSP_CONFIG_PAN_ID_CONFLICT_REPORT_THRESHOLD",
+	EZSP_CONFIG_REQUEST_KEY_TIMEOUT:                      "EZSP_CONFIG_REQUEST_KEY_TIMEOUT",
+	EZSP_CONFIG_CERTIFICATE_TABLE_SIZE:                   "EZSP_CONFIG_CERTIFICATE_TABLE_SIZE",
+	EZSP_CONFIG_APPLICATION_ZDO_FLAGS:                    "EZSP_CONFIG_APPLICATION_ZDO_FLAGS",
+	EZSP_CONFIG_BROADCAST_TABLE_SIZE:                     "EZSP_CONFIG_BROADCAST_TABLE_SIZE",
+	EZSP_CONFIG_MAC_FILTER_TABLE_SIZE:                    "EZSP_CONFIG_MAC_FILTER_TABLE_SIZE",
+	EZSP_CONFIG_SUPPORTED_NETWORKS:                       "EZSP_CONFIG_SUPPORTED_NETWORKS",
+	EZSP_CONFIG_SEND_MULTICASTS_TO_SLEEPY_ADDRESS:        "EZSP_CONFIG_SEND_MULTICASTS_TO_SLEEPY_ADDRESS",
+	EZSP_CONFIG_ZLL_GROUP_ADDRESSES:                      "EZSP_CONFIG_ZLL_GROUP_ADDRESSES",
+	EZSP_CONFIG_ZLL_RSSI_THRESHOLD:                       "EZSP_CONFIG_ZLL_RSSI_THRESHOLD",
+	EZSP_CONFIG_RF4CE_PAIRING_TABLE_SIZE:                 "EZSP_CONFIG_RF4CE_PAIRING_TABLE_SIZE",
+	EZSP_CONFIG_RF4CE_PENDING_OUTGOING_PACKET_TABLE_SIZE: "EZSP_CONFIG_RF4CE_PENDING_OUTGOING_PACKET_TABLE_SIZE",
+	EZSP_CONFIG_MTORR_FLOW_CONTROL:                       "EZSP_CONFIG_MTORR_FLOW_CONTROL",
+	EZSP_CONFIG_NETWORK_TEST_PARAMETER_1:                 "EZSP_CONFIG_NETWORK_TEST_PARAMETER_1",
+	EZSP_CONFIG_NETWORK_TEST_PARAMETER_2:                 "EZSP_CONFIG_NETWORK_TEST_PARAMETER_2",
+}
+
 // **************** EzspGetValue ID ****************
 const (
 	// The contents of the node data stack token.
@@ -842,4 +1030,10 @@ const (
 	EZSP_VALUE_RF4CE_SUPPORTED_DEVICE_TYPES_LIST = byte(0x27)
 	// The RF4CE profiles supported by the node
 	EZSP_VALUE_RF4CE_SUPPORTED_PROFILES_LIST = byte(0x28)
+)
+
+// **************** Other const ****************
+const (
+	EZSP_PROTOCOL_VERSION = byte(0x04)
+	EZSP_STACK_TYPE_MESH  = byte(0x02)
 )

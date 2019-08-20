@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/conthing/ezsp/ash"
-	"github.com/conthing/utils/common"
 )
 
 type EzspFrame struct {
@@ -15,7 +14,6 @@ type EzspFrame struct {
 	FrameID  byte
 	Data     []byte
 }
-
 
 var sequence byte
 var seqMutex sync.Mutex
@@ -27,7 +25,7 @@ var callbackCh = make(chan *EzspFrame, 1)
 var responseChMap [256]chan *EzspFrame
 
 func ezspFrameTrace(format string, v ...interface{}) {
-	common.Log.Debugf(format, v...)
+	//common.Log.Debugf(format, v...)
 }
 
 func (ezspFrame EzspFrame) String() (s string) {
@@ -76,7 +74,6 @@ func getSequence() byte {
 	seqMutex.Unlock()
 	return seq
 }
-
 
 func ezspFrameParse(data []byte) (*EzspFrame, error) {
 	seq := data[0]
