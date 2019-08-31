@@ -34,7 +34,7 @@ var readBufferOffset = byte(0)
 var readBuffer = make([]byte, 256)
 
 func ashFrameTrace(format string, v ...interface{}) {
-	//common.Log.Debugf(format, v...)
+	common.Log.Debugf(format, v...)
 }
 
 func ashFrameRxByteParse(recvChar byte) (err error) {
@@ -52,17 +52,17 @@ func ashFrameRxByteParse(recvChar byte) (err error) {
 	} else if recvChar == ASH_ESC {
 		readStatusEsc = true
 	} else if recvChar == ASH_XON {
-		ashFrameTrace("rx XON after: %x", readBuffer[:readBufferOffset])
+		ashFrameTrace("rx XON after: 0x%x", readBuffer[:readBufferOffset])
 		msgDone = true
 	} else if recvChar == ASH_XOFF {
-		common.Log.Warnf("rx XOFF after: %x", readBuffer[:readBufferOffset])
+		common.Log.Warnf("rx XOFF after: 0x%x", readBuffer[:readBufferOffset])
 		msgDone = true
 	} else if recvChar == ASH_SUB {
-		common.Log.Warnf("rx SUB after: %x", readBuffer[:readBufferOffset])
+		common.Log.Warnf("rx SUB after: 0x%x", readBuffer[:readBufferOffset])
 		msgDone = true
 		readStatusSubstitute = true
 	} else if recvChar == ASH_CAN {
-		ashFrameTrace("rx CANCEL after: %x", readBuffer[:readBufferOffset])
+		ashFrameTrace("rx CANCEL after: 0x%x", readBuffer[:readBufferOffset])
 		msgDone = true
 	} else if recvChar == ASH_FLAG {
 		msgDone = true
@@ -71,14 +71,14 @@ func ashFrameRxByteParse(recvChar byte) (err error) {
 		crc16 := crc16.CRC16CCITTFalse(readBuffer[:readBufferOffset])
 
 		if readBufferOffset <= 2 {
-			common.Log.Warnf("rx frame too short < %x", readBuffer[:readBufferOffset])
-			err = fmt.Errorf("rx frame too short < %x", readBuffer[:readBufferOffset])
+			common.Log.Warnf("rx frame too short < 0x%x", readBuffer[:readBufferOffset])
+			err = fmt.Errorf("rx frame too short < 0x%x", readBuffer[:readBufferOffset])
 		} else if crc16 != 0 {
-			common.Log.Warnf("rx frame crc error < %x", readBuffer[:readBufferOffset])
+			common.Log.Warnf("rx frame crc error < 0x%x", readBuffer[:readBufferOffset])
 			_ = ashRecvFrame(nil) //crc不对发送NAK
-			err = fmt.Errorf("rx frame crc error < %x", readBuffer[:readBufferOffset])
+			err = fmt.Errorf("rx frame crc error < 0x%x", readBuffer[:readBufferOffset])
 		} else {
-			ashFrameTrace("rx < %x", readBuffer[:readBufferOffset])
+			ashFrameTrace("rx < 0x%x", readBuffer[:readBufferOffset])
 			err = ashRecvFrame(readBuffer[:readBufferOffset-2])
 		}
 	} else {
@@ -123,8 +123,8 @@ func ashSendFrame(frame []byte) error {
 
 	_, err := ashSerial.Write(writeBuffer)
 	if err != nil {
-		return fmt.Errorf("tx %x failed. %v", writeBuffer, err)
+		return fmt.Errorf("tx 0x%x failed. %v", writeBuffer, err)
 	}
-	ashFrameTrace("tx > %x", writeBuffer)
+	ashFrameTrace("tx > 0x%x", writeBuffer)
 	return nil
 }

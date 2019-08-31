@@ -30,7 +30,8 @@ var ashRecvNakFrame = false
 var ashRecvErrorFrame []byte
 
 //最近一次发送的时间，用来判断超时重发
-var ashSendTime *time.Time // todo 这个时间使用有问题 send 和 resend 同时存在时
+var ashResendTime *time.Time // todo 这个时间使用有问题 send 和 resend 同时存在时
+var ashResendCnt byte
 
 var rxIndexNext byte          /*下一个接收报文的index，自己报文中的ackNum*/
 var rxIndexNextSent = byte(7) /*已经发送出去的ackNum*/
@@ -43,7 +44,7 @@ var txIndexConfirming byte /*正在等待ACK的报文index*/
 var AshRecv func([]byte) error
 
 func ashTrace(format string, v ...interface{}) {
-	//common.Log.Debugf(format, v...)
+	common.Log.Debugf(format, v...)
 }
 
 // InitVariables 在AshReset成功后必须调用，恢复原始的状态
@@ -61,7 +62,8 @@ func InitVariables() {
 	ashRecvNakFrame = false
 	ashRecvErrorFrame = nil
 
-	ashSendTime = nil
+	ashResendTime = nil
+	ashResendCnt = 0
 
 	rxIndexNext = 0
 	rxIndexNextSent = byte(7) /*已经发送出去的ackNum*/
@@ -109,7 +111,7 @@ func needAckFrame() bool {
 }
 
 func sendReady() bool {
-	/*已经收到的报文大于发送的acknum*/
+	/*已经收到的acknum==txIndexNext*/
 	return txIndexNext == txIndexConfirming
 }
 
@@ -164,7 +166,7 @@ func ashRecvFrame(frame []byte) error {
 	reTx := bool((control & 8) == 8)
 	if control == ASH_CONTROLBYTE_RSTACK {
 		if len(frame) == 3 {
-			ashTrace("ASH recv RSTACK frame < %x", frame)
+			ashTrace("ASH recv RSTACK frame < 0x%x", frame)
 			if frame[1] != 0x02 {
 				ashRejectCondition = true
 				return fmt.Errorf("ASH recv unknown version in RSTACK frame")
@@ -172,11 +174,11 @@ func ashRecvFrame(frame []byte) error {
 			ashRecvRstackFrame <- frame[2]
 		} else {
 			ashRejectCondition = true
-			return fmt.Errorf("ASH recv RSTACK frame length error < %x", frame)
+			return fmt.Errorf("ASH recv RSTACK frame length error < 0x%x", frame)
 		}
 	} else if control == ASH_CONTROLBYTE_ERROR {
 		if len(frame) == 3 {
-			common.Log.Warnf("ASH recv ERROR frame < %x", frame) //todo 测试下ERROR frame的格式
+			common.Log.Warnf("ASH recv ERROR frame < 0x%x", frame) //todo 测试下ERROR frame的格式
 			if frame[1] != 0x02 {
 				ashRejectCondition = true
 				return fmt.Errorf("ASH recv unknown version in ERROR frame")
@@ -184,22 +186,22 @@ func ashRecvFrame(frame []byte) error {
 			ashRecvErrorFrame = frame[2:]
 		} else {
 			ashRejectCondition = true
-			return fmt.Errorf("ASH recv ERROR frame length error < %x", frame)
+			return fmt.Errorf("ASH recv ERROR frame length error < 0x%x", frame)
 		}
 	} else if ashResetSuccess == false { // RSTACK 没收到之前不应该收到其他报文
-		return fmt.Errorf("ASH recv other frame before RSTACK < %x", frame)
+		return fmt.Errorf("ASH recv other frame before RSTACK < 0x%x", frame)
 	} else if byte(control&0x80) == ASH_CONTROLBYTE_DATA {
 		dataFrmPseudoRandom(frame[1:])
 		err := ackNumProcess(ackNum)
 		if err != nil {
 			ashRejectCondition = true
-			return fmt.Errorf("ASH recv DAT frame with invalid ackNum: %v < %x", err, frame)
+			return fmt.Errorf("ASH recv DAT frame with invalid ackNum: %v < 0x%x", err, frame)
 		}
 
 		/*更新frmNumNext*/
 		if frmNum == rxIndexNext {
 			rxIndexNext = inc(rxIndexNext)
-			ashTrace("ASH recv < %x", frame)
+			ashTrace("ASH recv < 0x%x", frame)
 			if AshRecv != nil {
 				err = AshRecv(frame[1:])
 				if err != nil {
@@ -210,14 +212,14 @@ func ashRecvFrame(frame []byte) error {
 			ashRejectCondition = false
 		} else if smallthan(rxIndexNext, frmNum) {
 			ashRejectCondition = true
-			return fmt.Errorf("ASH recv discontinuous frame sequence. frmNum=%d, reTx=%v, expect frmNum=%d < %x", frmNum, reTx, rxIndexNext, frame)
+			return fmt.Errorf("ASH recv discontinuous frame sequence. frmNum=%d, reTx=%v, expect frmNum=%d < 0x%x", frmNum, reTx, rxIndexNext, frame)
 		} else {
 			if reTx {
 				ashImmediatelyAck = true //重发的报文，立刻ACK
-				common.Log.Warnf("ASH recv repeative resend frame. frmNum=%d, reTx=%v, expect frmNum=%d < %x", frmNum, reTx, rxIndexNext, frame)
+				common.Log.Warnf("ASH recv repeative resend frame. frmNum=%d, reTx=%v, expect frmNum=%d < 0x%x", frmNum, reTx, rxIndexNext, frame)
 			} else { /*初发的帧比想收的帧序号还要小*/
 				ashRejectCondition = true
-				return fmt.Errorf("ASH recv frame sequence rollback. frmNum=%d, reTx=%v, expect frmNum=%d < %x", frmNum, reTx, rxIndexNext, frame)
+				return fmt.Errorf("ASH recv frame sequence rollback. frmNum=%d, reTx=%v, expect frmNum=%d < 0x%x", frmNum, reTx, rxIndexNext, frame)
 			}
 		}
 	} else if (byte)(control&0xE0) == ASH_CONTROLBYTE_ACK {
@@ -225,25 +227,25 @@ func ashRecvFrame(frame []byte) error {
 			err := ackNumProcess(ackNum)
 			if err != nil {
 				ashRejectCondition = true
-				return fmt.Errorf("ASH recv DAT frame with invalid ackNum: %v < %x", err, frame)
+				return fmt.Errorf("ASH recv ACK frame with invalid ackNum: %v < 0x%x", err, frame)
 			}
-			ashTrace("ASH recv ACK frame < %x", frame)
+			ashTrace("ASH recv ACK frame < 0x%x", frame)
 		} else {
 			ashRejectCondition = true
-			return fmt.Errorf("ASH recv ACK frame length error < %x", frame)
+			return fmt.Errorf("ASH recv ACK frame length error < 0x%x", frame)
 		}
 	} else if (byte)(control&0xE0) == ASH_CONTROLBYTE_NAK {
 		if len(frame) == 1 {
 			err := ackNumProcess(ackNum)
 			if err != nil {
 				ashRejectCondition = true
-				return fmt.Errorf("ASH recv DAT frame with invalid ackNum: %v < %x", err, frame)
+				return fmt.Errorf("ASH recv NAK frame with invalid ackNum: %v < 0x%x", err, frame)
 			}
-			ashTrace("ASH recv NAK frame < %x", frame)
+			common.Log.Warnf("ASH recv NAK frame < 0x%x", frame)
 			ashRecvNakFrame = true
 		} else {
 			ashRejectCondition = true
-			return fmt.Errorf("ASH recv NAK frame length error < %x", frame)
+			return fmt.Errorf("ASH recv NAK frame length error < 0x%x", frame)
 		}
 	} else {
 		ashRejectCondition = true
@@ -253,7 +255,7 @@ func ashRecvFrame(frame []byte) error {
 	return nil
 }
 
-func ashAckProcess() {
+func ashAckProcess() bool {
 	if ashRejectCondition == false {
 		ashLastRejectCondition = false
 	}
@@ -263,6 +265,7 @@ func ashAckProcess() {
 		if err != nil {
 			common.Log.Errorf("ASH send NAK frame failed: %v", err)
 		}
+		return true
 	} else if needAckFrame() || ashImmediatelyAck {
 		err := ashSendAckFrame()
 		if err != nil {
@@ -270,20 +273,34 @@ func ashAckProcess() {
 		} else {
 			ashImmediatelyAck = false
 		}
+		return true
 	}
+	return false
 }
 
 func ashResendProcess() bool {
 	ashDataFrame := getResendBuffer()
 	if ashDataFrame != nil {
-		ashTrace("ASH resend > %x", ashDataFrame)
-		dataFrmPseudoRandom(ashDataFrame[1:])
-		err := ashSendFrame(ashDataFrame)
-		if err != nil {
-			common.Log.Errorf("ASH resend failed: %v", err)
+		if ashResendCnt < 2 {
+			ashResendCnt++
+			//if ashResendCnt > 1 {
+			//	ashTrace("ASH %dth resend ", ashResendCnt)
+			//}
+			ashTrace("ASH %dth resend > 0x%x", ashResendCnt, ashDataFrame)
+			dataFrmPseudoRandom(ashDataFrame[1:])
+			err := ashSendFrame(ashDataFrame)
+			if err != nil {
+				common.Log.Errorf("ASH resend failed: %v", err)
+			}
+			resendTime := time.Now().Add(time.Second * time.Duration(3+ashResendCnt)) //第一次间隔3秒，第2次4秒...
+			ashResendTime = &resendTime
+		} else {
+			common.Log.Errorf("ASH resend exceed max count")
+			ashResendCnt = 0
+
+			//todo 这里出错怎么办
+			//txIndexConfirming = inc(txIndexConfirming)
 		}
-		now := time.Now()
-		ashSendTime = &now
 		return true
 	}
 	return false
@@ -293,14 +310,15 @@ func ashSendProcess() bool {
 	if sendReady() {
 		ashDataFrame := getSendBuffer()
 		if ashDataFrame != nil {
-			ashTrace("ASH send > %x", ashDataFrame)
+			ashTrace("ASH send > 0x%x", ashDataFrame)
 			dataFrmPseudoRandom(ashDataFrame[1:])
 			err := ashSendFrame(ashDataFrame)
 			if err != nil {
 				common.Log.Errorf("ASH send failed: %v", err)
 			}
-			now := time.Now()
-			ashSendTime = &now
+			resendTime := time.Now().Add(time.Second * 3)
+			ashResendTime = &resendTime
+			ashResendCnt = 0
 			return true
 		}
 	}
@@ -314,12 +332,12 @@ func ashSendResetFrame() error {
 }
 func ashSendAckFrame() error {
 	frame := []byte{ASH_CONTROLBYTE_ACK | getAckNumForSend()}
-	ashTrace("ASH send ACK frame > %x", frame)
+	ashTrace("ASH send ACK frame > 0x%x", frame)
 	return ashSendFrame(frame)
 }
 func ashSendNakFrame() error {
 	frame := []byte{ASH_CONTROLBYTE_NAK | getAckNumForSend()}
-	ashTrace("ASH send NAK frame > %x", frame)
+	ashTrace("ASH send NAK frame > 0x%x", frame)
 	return ashSendFrame(frame)
 }
 
@@ -327,6 +345,7 @@ func ashSendNakFrame() error {
 func ashTransceiver(errChan chan error) {
 	for {
 		resent := false
+		acknaksent := false //一次循环发送了ACK就不发DAT了
 		select {
 		case <-ashNeedSendProcess:
 		case <-time.After(time.Millisecond * 50):
@@ -348,14 +367,15 @@ func ashTransceiver(errChan chan error) {
 			if ashResetSuccess { // 没收到RSTACK之前不处理
 				if ashRecvNakFrame {
 					ashRecvNakFrame = false
-					resent = ashResendProcess()
+					ashImmediatelyAck = true //resent = ashResendProcess()
 				}
 				/*重发和发送ACK的处理，最好在所有收到的报文处理完后进行一次性调用*/
-				ashAckProcess()
+				acknaksent = ashAckProcess()
 			}
 		}
-		if ashResetSuccess { // 没收到RSTACK之前不处理
-			if resent == false && ashSendTime != nil && time.Now().After(ashSendTime.Add(time.Millisecond*1000)) {
+		if ashResetSuccess && !acknaksent { // 没收到RSTACK之前不处理
+			if resent == false && ashResendTime != nil && time.Now().After(*ashResendTime) {
+				//todo 这里会一直重发下去，如果NCP没有回复，不会退出
 				resent = ashResendProcess()
 			}
 			_ = ashSendProcess()

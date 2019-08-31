@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/conthing/ezsp/ash"
+	"github.com/conthing/utils/common"
 )
 
 type EzspFrame struct {
@@ -25,7 +26,7 @@ var callbackCh = make(chan *EzspFrame, 1)
 var responseChMap [256]chan *EzspFrame
 
 func ezspFrameTrace(format string, v ...interface{}) {
-	//common.Log.Debugf(format, v...)
+	common.Log.Debugf(format, v...)
 }
 
 func (ezspFrame EzspFrame) String() (s string) {
@@ -35,7 +36,7 @@ func (ezspFrame EzspFrame) String() (s string) {
 	} else if ezspFrame.Callback == 1 {
 		s += "(sync)"
 	}
-	s += fmt.Sprintf(" seq=0x%x %x", ezspFrame.Sequence, ezspFrame.Data)
+	s += fmt.Sprintf(" seq=0x%x 0x%x", ezspFrame.Sequence, ezspFrame.Data)
 	return
 }
 
@@ -156,14 +157,14 @@ func EzspFrameSend(frmID byte, data []byte) (*EzspFrame, error) {
 		responseChMapClear(seq)
 		return nil, fmt.Errorf("EZSP send %s(seq=%d) failed: ash send failed: %v", frameIDToName(frmID), seq, err)
 	}
-	ezspFrameTrace("EZSP send > %s seq=0x%x %x", frameIDToName(frmID), seq, data)
+	ezspFrameTrace("EZSP send > %s seq=0x%x 0x%x", frameIDToName(frmID), seq, data)
 
 	select {
 	case response := <-responseChMap[seq]:
 		close(responseChMap[seq])
 		responseChMap[seq] = nil
 		return response, nil
-	case <-time.After(time.Millisecond * 3000):
+	case <-time.After(time.Millisecond * 15000):
 		responseChMapClear(seq)
 		return nil, fmt.Errorf("EZSP send %s timeout", frameIDToName(frmID))
 	}

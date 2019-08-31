@@ -25,19 +25,58 @@ func NcpGetVersion() (err error) {
 		ncpStackVersion = emberVersion.String()
 	}
 
+	//common.Log.Infof("%v", stackVersion)
+
 	common.Log.Infof("NcpGetVersion: protocolVersion(%d) stackType(%d) stackVersion(%s)", ncpProtocolVersion, ncpStackType, ncpStackVersion)
 	return nil
 }
 
 func NcpPrintAllConfigurations() {
-	for configId, name := range configIDNameMap {
-		value, err := EzspGetConfigurationValue(configId)
-		if err != nil {
-			common.Log.Errorf("EZSP get %s failed: %v", name, err)
+	for id := 0; id < 256; id++ {
+		name, ok := configIDNameMap[byte(id)]
+		if ok {
+			value, err := EzspGetConfigurationValue(byte(id))
+			if err != nil {
+				common.Log.Errorf("%s read failed: %v", name, err)
+			}
+			common.Log.Infof("%s = %d", name, value)
 		}
-		common.Log.Infof("EZSP config %s = %d", name, value)
 	}
+}
 
+type EzspConfig struct {
+	configID byte
+	value    uint16
+}
+
+var ncpAllConfigurations = [...]EzspConfig{
+	{EZSP_CONFIG_SOURCE_ROUTE_TABLE_SIZE, uint16(2)},
+	{EZSP_CONFIG_SECURITY_LEVEL, uint16(5)},
+	{EZSP_CONFIG_ADDRESS_TABLE_SIZE, uint16(2)},
+	{EZSP_CONFIG_TRUST_CENTER_ADDRESS_CACHE_SIZE, uint16(2)},
+	{EZSP_CONFIG_STACK_PROFILE, uint16(0)},
+	{EZSP_CONFIG_INDIRECT_TRANSMISSION_TIMEOUT, uint16(7680)},
+	{EZSP_CONFIG_MAX_HOPS, uint16(30)},
+	{EZSP_CONFIG_SUPPORTED_NETWORKS, uint16(1)},
+}
+
+func NcpSetConfigurations() (err error) {
+	for _, cfg := range ncpAllConfigurations {
+		err = EzspSetConfigurationValue(cfg.configID, cfg.value)
+		name := configIDToName(cfg.configID)
+		if err != nil {
+			return fmt.Errorf("%s write %d failed: %v", name, cfg.value, err)
+		}
+		value, err := EzspGetConfigurationValue(cfg.configID)
+		if err != nil {
+			return fmt.Errorf("%s read failed: %v", name, err)
+		}
+		if value != cfg.value {
+			return fmt.Errorf("%s read back %d != %d", name, value, cfg.value)
+		}
+		common.Log.Infof("%s = %d write success", name, cfg.value)
+	}
+	return
 }
 
 func NcpTick() {

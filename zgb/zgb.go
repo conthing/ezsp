@@ -25,12 +25,14 @@ func TickRunning(_ chan error) {
 
 	ezsp.NcpPrintAllConfigurations()
 
-	err = ezsp.EzspSetConfigurationValue(byte(26), uint16(2))
+	err = ezsp.NcpSetConfigurations()
 	if err != nil {
-		common.Log.Errorf("EzspSetConfigurationValue failed: %v", err)
-	} else {
-		common.Log.Debugf("EzspSetConfigurationValue return OK")
+		common.Log.Errorf("NcpSetConfigurations failed: %v", err)
 	}
+
+	common.Log.Infof("NcpPrintAllConfigurations OK")
+	ezsp.NcpPrintAllConfigurations()
+	common.Log.Infof("NcpPrintAllConfigurations OK2")
 
 	for {
 		ezsp.NcpTick()
