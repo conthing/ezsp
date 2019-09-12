@@ -36,6 +36,9 @@ var ashResendCnt byte
 var rxIndexNext byte          /*下一个接收报文的index，自己报文中的ackNum*/
 var rxIndexNextSent = byte(7) /*已经发送出去的ackNum*/
 
+var rxbuffer [8][]byte //todo 发送失败怎么清空
+var rxPutPtr byte
+
 var txbuffer [8][]byte //todo 发送失败怎么清空
 var txPutPtr byte
 var txIndexNext byte       /*下一个发送报文的index，自己报文中的frmNum*/
@@ -67,6 +70,11 @@ func InitVariables() {
 
 	rxIndexNext = 0
 	rxIndexNextSent = byte(7) /*已经发送出去的ackNum*/
+
+	for i := range rxbuffer {
+		rxbuffer[i] = nil
+	}
+	rxPutPtr = 0
 
 	for i := range txbuffer {
 		txbuffer[i] = nil
@@ -100,7 +108,7 @@ func dataFrmPseudoRandom(data []byte) {
 }
 
 func getAckNumForSend() byte { /*发送报文中的ackNum字段，调用此函数后才算ACK过*/
-	rxIndexNextSent = rxIndexNext
+	//rxIndexNextSent = rxIndexNext
 	return rxIndexNext
 }
 
@@ -202,13 +210,14 @@ func ashRecvFrame(frame []byte) error {
 		if frmNum == rxIndexNext {
 			rxIndexNext = inc(rxIndexNext)
 			ashTrace("ASH recv < 0x%x", frame)
-			if AshRecv != nil {
-				err = AshRecv(frame[1:])
-				if err != nil {
-					ashRejectCondition = true
-					return err
-				}
-			}
+			rxbuffer[frmNum] = frame[1:]
+			//if AshRecv != nil {
+			//	err = AshRecv(frame[1:])
+			//	if err != nil {
+			//		ashRejectCondition = true
+			//		return err
+			//	}
+			//}
 			ashRejectCondition = false
 		} else if smallthan(rxIndexNext, frmNum) {
 			ashRejectCondition = true
@@ -267,10 +276,22 @@ func ashAckProcess() bool {
 		}
 		return true
 	} else if needAckFrame() || ashImmediatelyAck {
+
 		err := ashSendAckFrame()
 		if err != nil {
 			common.Log.Errorf("ASH send ACK frame failed: %v", err)
 		} else {
+			for rxIndexNextSent != rxIndexNext {
+				if AshRecv != nil && rxbuffer[rxIndexNextSent] != nil {
+					err := AshRecv(rxbuffer[rxIndexNextSent])
+					if err != nil {
+						common.Log.Errorf("ASH recv process failed: %v", err)
+						//ashRejectCondition = true
+						//return err
+					}
+				}
+				rxIndexNextSent = inc(rxIndexNextSent)
+			}
 			ashImmediatelyAck = false
 		}
 		return true
@@ -367,7 +388,7 @@ func ashTransceiver(errChan chan error) {
 			if ashResetSuccess { // 没收到RSTACK之前不处理
 				if ashRecvNakFrame {
 					ashRecvNakFrame = false
-					ashImmediatelyAck = true //resent = ashResendProcess()
+					//ashImmediatelyAck = true //resent = ashResendProcess()
 				}
 				/*重发和发送ACK的处理，最好在所有收到的报文处理完后进行一次性调用*/
 				acknaksent = ashAckProcess()
