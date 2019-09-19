@@ -34,7 +34,7 @@ var readBufferOffset = byte(0)
 var readBuffer = make([]byte, 256)
 
 func ashFrameTrace(format string, v ...interface{}) {
-	common.Log.Debugf(format, v...)
+	//common.Log.Debugf(format, v...)
 }
 
 func ashFrameRxByteParse(recvChar byte) (err error) {
@@ -110,16 +110,17 @@ func ashSendFrame(frame []byte) error {
 		return fmt.Errorf("tx failed. serial port not open")
 	}
 
-	var writeBuffer []byte
 	crc16 := crc16.CRC16CCITTFalse(frame)
-	for _, b := range frame {
+	frmWithCrc := append(frame, byte((crc16>>8)&0xff), byte(crc16&0xff))
+	var writeBuffer []byte
+	for _, b := range frmWithCrc {
 		if b == ASH_XON || b == ASH_XOFF || b == ASH_SUB || b == ASH_CAN || b == ASH_ESC || b == ASH_FLAG {
 			writeBuffer = append(writeBuffer, ASH_ESC, b^ASH_FLIP)
 		} else {
 			writeBuffer = append(writeBuffer, b)
 		}
 	}
-	writeBuffer = append(writeBuffer, byte((crc16>>8)&0xff), byte(crc16&0xff), ASH_FLAG)
+	writeBuffer = append(writeBuffer, ASH_FLAG)
 
 	_, err := ashSerial.Write(writeBuffer)
 	if err != nil {

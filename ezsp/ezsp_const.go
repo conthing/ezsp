@@ -2,6 +2,277 @@ package ezsp
 
 import "fmt"
 
+// **************** EmberStatus ****************
+const (
+	EMBER_SUCCESS                                = byte(0x00)
+	EMBER_ERR_FATAL                              = byte(0x01)
+	EMBER_BAD_ARGUMENT                           = byte(0x02)
+	EMBER_NOT_FOUND                              = byte(0x03)
+	EMBER_EEPROM_MFG_STACK_VERSION_MISMATCH      = byte(0x04)
+	EMBER_INCOMPATIBLE_STATIC_MEMORY_DEFINITIONS = byte(0x05)
+	EMBER_EEPROM_MFG_VERSION_MISMATCH            = byte(0x06)
+	EMBER_EEPROM_STACK_VERSION_MISMATCH          = byte(0x07)
+	EMBER_NO_BUFFERS                             = byte(0x18)
+	EMBER_SERIAL_INVALID_BAUD_RATE               = byte(0x20)
+	EMBER_SERIAL_INVALID_PORT                    = byte(0x21)
+	EMBER_SERIAL_TX_OVERFLOW                     = byte(0x22)
+	EMBER_SERIAL_RX_OVERFLOW                     = byte(0x23)
+	EMBER_SERIAL_RX_FRAME_ERROR                  = byte(0x24)
+	EMBER_SERIAL_RX_PARITY_ERROR                 = byte(0x25)
+	EMBER_SERIAL_RX_EMPTY                        = byte(0x26)
+	EMBER_SERIAL_RX_OVERRUN_ERROR                = byte(0x27)
+	EMBER_MAC_TRANSMIT_QUEUE_FULL                = byte(0x39)
+	EMBER_MAC_UNKNOWN_HEADER_TYPE                = byte(0x3A)
+	EMBER_MAC_ACK_HEADER_TYPE                    = byte(0x3B)
+	EMBER_MAC_SCANNING                           = byte(0x3D)
+	EMBER_MAC_NO_DATA                            = byte(0x31)
+	EMBER_MAC_JOINED_NETWORK                     = byte(0x32)
+	EMBER_MAC_BAD_SCAN_DURATION                  = byte(0x33)
+	EMBER_MAC_INCORRECT_SCAN_TYPE                = byte(0x34)
+	EMBER_MAC_INVALID_CHANNEL_MASK               = byte(0x35)
+	EMBER_MAC_COMMAND_TRANSMIT_FAILURE           = byte(0x36)
+	EMBER_MAC_NO_ACK_RECEIVED                    = byte(0x40)
+	EMBER_MAC_RADIO_NETWORK_SWITCH_FAILED        = byte(0x41)
+	EMBER_MAC_INDIRECT_TIMEOUT                   = byte(0x42)
+	EMBER_SIM_EEPROM_ERASE_PAGE_GREEN            = byte(0x43)
+	EMBER_SIM_EEPROM_ERASE_PAGE_RED              = byte(0x44)
+	EMBER_SIM_EEPROM_FULL                        = byte(0x45)
+	EMBER_SIM_EEPROM_INIT_1_FAILED               = byte(0x48)
+	EMBER_SIM_EEPROM_INIT_2_FAILED               = byte(0x49)
+	EMBER_SIM_EEPROM_INIT_3_FAILED               = byte(0x4A)
+	EMBER_SIM_EEPROM_REPAIRING                   = byte(0x4D)
+	EMBER_ERR_FLASH_WRITE_INHIBITED              = byte(0x46)
+	EMBER_ERR_FLASH_VERIFY_FAILED                = byte(0x47)
+	EMBER_ERR_FLASH_PROG_FAIL                    = byte(0x4B)
+	EMBER_ERR_FLASH_ERASE_FAIL                   = byte(0x4C)
+	EMBER_ERR_BOOTLOADER_TRAP_TABLE_BAD          = byte(0x58)
+	EMBER_ERR_BOOTLOADER_TRAP_UNKNOWN            = byte(0x59)
+	EMBER_ERR_BOOTLOADER_NO_IMAGE                = byte(0x05A)
+	EMBER_DELIVERY_FAILED                        = byte(0x66)
+	EMBER_BINDING_INDEX_OUT_OF_RANGE             = byte(0x69)
+	EMBER_ADDRESS_TABLE_INDEX_OUT_OF_RANGE       = byte(0x6A)
+	EMBER_INVALID_BINDING_INDEX                  = byte(0x6C)
+	EMBER_INVALID_CALL                           = byte(0x70)
+	EMBER_COST_NOT_KNOWN                         = byte(0x71)
+	EMBER_MAX_MESSAGE_LIMIT_REACHED              = byte(0x72)
+	EMBER_MESSAGE_TOO_LONG                       = byte(0x74)
+	EMBER_BINDING_IS_ACTIVE                      = byte(0x75)
+	EMBER_ADDRESS_TABLE_ENTRY_IS_ACTIVE          = byte(0x76)
+	EMBER_ADC_CONVERSION_DONE                    = byte(0x80)
+	EMBER_ADC_CONVERSION_BUSY                    = byte(0x81)
+	EMBER_ADC_CONVERSION_DEFERRED                = byte(0x82)
+	EMBER_ADC_NO_CONVERSION_PENDING              = byte(0x84)
+	EMBER_SLEEP_INTERRUPTED                      = byte(0x85)
+	EMBER_PHY_TX_UNDERFLOW                       = byte(0x88)
+	EMBER_PHY_TX_INCOMPLETE                      = byte(0x89)
+	EMBER_PHY_INVALID_CHANNEL                    = byte(0x8A)
+	EMBER_PHY_INVALID_POWER                      = byte(0x8B)
+	EMBER_PHY_TX_BUSY                            = byte(0x8C)
+	EMBER_PHY_TX_CCA_FAIL                        = byte(0x8D)
+	EMBER_PHY_OSCILLATOR_CHECK_FAILED            = byte(0x8E)
+	EMBER_PHY_ACK_RECEIVED                       = byte(0x8F)
+	EMBER_NETWORK_UP                             = byte(0x90)
+	EMBER_NETWORK_DOWN                           = byte(0x91)
+	EMBER_JOIN_FAILED                            = byte(0x94)
+	EMBER_MOVE_FAILED                            = byte(0x96)
+	EMBER_CANNOT_JOIN_AS_ROUTER                  = byte(0x98)
+	EMBER_NODE_ID_CHANGED                        = byte(0x99)
+	EMBER_PAN_ID_CHANGED                         = byte(0x9A)
+	EMBER_CHANNEL_CHANGED                        = byte(0x9B)
+	EMBER_NO_BEACONS                             = byte(0xAB)
+	EMBER_RECEIVED_KEY_IN_THE_CLEAR              = byte(0xAC)
+	EMBER_NO_NETWORK_KEY_RECEIVED                = byte(0xAD)
+	EMBER_NO_LINK_KEY_RECEIVED                   = byte(0xAE)
+	EMBER_PRECONFIGURED_KEY_REQUIRED             = byte(0xAF)
+	EMBER_KEY_INVALID                            = byte(0xB2)
+	EMBER_INVALID_SECURITY_LEVEL                 = byte(0x95)
+	EMBER_APS_ENCRYPTION_ERROR                   = byte(0xA6)
+	EMBER_TRUST_CENTER_MASTER_KEY_NOT_SET        = byte(0xA7)
+	EMBER_SECURITY_STATE_NOT_SET                 = byte(0xA8)
+	EMBER_KEY_TABLE_INVALID_ADDRESS              = byte(0xB3)
+	EMBER_SECURITY_CONFIGURATION_INVALID         = byte(0xB7)
+	EMBER_TOO_SOON_FOR_SWITCH_KEY                = byte(0xB8)
+	EMBER_SIGNATURE_VERIFY_FAILURE               = byte(0xB9)
+	EMBER_KEY_NOT_AUTHORIZED                     = byte(0xBB)
+	EMBER_SECURITY_DATA_INVALID                  = byte(0xBD)
+	EMBER_NOT_JOINED                             = byte(0x93)
+	EMBER_NETWORK_BUSY                           = byte(0xA1)
+	EMBER_INVALID_ENDPOINT                       = byte(0xA3)
+	EMBER_BINDING_HAS_CHANGED                    = byte(0xA4)
+	EMBER_INSUFFICIENT_RANDOM_DATA               = byte(0xA5)
+	EMBER_SOURCE_ROUTE_FAILURE                   = byte(0xA9)
+	EMBER_MANY_TO_ONE_ROUTE_FAILURE              = byte(0xAA)
+	EMBER_STACK_AND_HARDWARE_MISMATCH            = byte(0xB0)
+	EMBER_INDEX_OUT_OF_RANGE                     = byte(0xB1)
+	EMBER_TABLE_FULL                             = byte(0xB4)
+	EMBER_TABLE_ENTRY_ERASED                     = byte(0xB6)
+	EMBER_LIBRARY_NOT_PRESENT                    = byte(0xB5)
+	EMBER_OPERATION_IN_PROGRESS                  = byte(0xBA)
+	EMBER_TRUST_CENTER_EUI_HAS_CHANGED           = byte(0xBC)
+	EMBER_NO_RESPONSE                            = byte(0xC0)
+	EMBER_DUPLICATE_ENTRY                        = byte(0xC1)
+	EMBER_NOT_PERMITTED                          = byte(0xC2)
+	EMBER_DISCOVERY_TIMEOUT                      = byte(0xC3)
+	EMBER_DISCOVERY_ERROR                        = byte(0xC4)
+	EMBER_SECURITY_TIMEOUT                       = byte(0xC5)
+	EMBER_SECURITY_FAILURE                       = byte(0xC6)
+	EMBER_APPLICATION_ERROR_0                    = byte(0xF0)
+	EMBER_APPLICATION_ERROR_1                    = byte(0xF1)
+	EMBER_APPLICATION_ERROR_2                    = byte(0xF2)
+	EMBER_APPLICATION_ERROR_3                    = byte(0xF3)
+	EMBER_APPLICATION_ERROR_4                    = byte(0xF4)
+	EMBER_APPLICATION_ERROR_5                    = byte(0xF5)
+	EMBER_APPLICATION_ERROR_6                    = byte(0xF6)
+	EMBER_APPLICATION_ERROR_7                    = byte(0xF7)
+	EMBER_APPLICATION_ERROR_8                    = byte(0xF8)
+	EMBER_APPLICATION_ERROR_9                    = byte(0xF9)
+	EMBER_APPLICATION_ERROR_10                   = byte(0xFA)
+	EMBER_APPLICATION_ERROR_11                   = byte(0xFB)
+	EMBER_APPLICATION_ERROR_12                   = byte(0xFC)
+	EMBER_APPLICATION_ERROR_13                   = byte(0xFD)
+	EMBER_APPLICATION_ERROR_14                   = byte(0xFE)
+	EMBER_APPLICATION_ERROR_15                   = byte(0xFF)
+)
+
+func emberStatusToString(emberStatus byte) string {
+	name, ok := emberStatusStringMap[emberStatus]
+	if !ok {
+		name = fmt.Sprintf("UNKNOWN_EMBERSTATUS_%02X", emberStatus)
+	}
+	return name
+}
+
+var emberStatusStringMap = map[byte]string{
+	EMBER_SUCCESS:                                "EMBER_SUCCESS",
+	EMBER_ERR_FATAL:                              "EMBER_ERR_FATAL",
+	EMBER_BAD_ARGUMENT:                           "EMBER_BAD_ARGUMENT",
+	EMBER_NOT_FOUND:                              "EMBER_NOT_FOUND",
+	EMBER_EEPROM_MFG_STACK_VERSION_MISMATCH:      "EMBER_EEPROM_MFG_STACK_VERSION_MISMATCH",
+	EMBER_INCOMPATIBLE_STATIC_MEMORY_DEFINITIONS: "EMBER_INCOMPATIBLE_STATIC_MEMORY_DEFINITIONS",
+	EMBER_EEPROM_MFG_VERSION_MISMATCH:            "EMBER_EEPROM_MFG_VERSION_MISMATCH",
+	EMBER_EEPROM_STACK_VERSION_MISMATCH:          "EMBER_EEPROM_STACK_VERSION_MISMATCH",
+	EMBER_NO_BUFFERS:                             "EMBER_NO_BUFFERS",
+	EMBER_SERIAL_INVALID_BAUD_RATE:               "EMBER_SERIAL_INVALID_BAUD_RATE",
+	EMBER_SERIAL_INVALID_PORT:                    "EMBER_SERIAL_INVALID_PORT",
+	EMBER_SERIAL_TX_OVERFLOW:                     "EMBER_SERIAL_TX_OVERFLOW",
+	EMBER_SERIAL_RX_OVERFLOW:                     "EMBER_SERIAL_RX_OVERFLOW",
+	EMBER_SERIAL_RX_FRAME_ERROR:                  "EMBER_SERIAL_RX_FRAME_ERROR",
+	EMBER_SERIAL_RX_PARITY_ERROR:                 "EMBER_SERIAL_RX_PARITY_ERROR",
+	EMBER_SERIAL_RX_EMPTY:                        "EMBER_SERIAL_RX_EMPTY",
+	EMBER_SERIAL_RX_OVERRUN_ERROR:                "EMBER_SERIAL_RX_OVERRUN_ERROR",
+	EMBER_MAC_TRANSMIT_QUEUE_FULL:                "EMBER_MAC_TRANSMIT_QUEUE_FULL",
+	EMBER_MAC_UNKNOWN_HEADER_TYPE:                "EMBER_MAC_UNKNOWN_HEADER_TYPE",
+	EMBER_MAC_ACK_HEADER_TYPE:                    "EMBER_MAC_ACK_HEADER_TYPE",
+	EMBER_MAC_SCANNING:                           "EMBER_MAC_SCANNING",
+	EMBER_MAC_NO_DATA:                            "EMBER_MAC_NO_DATA",
+	EMBER_MAC_JOINED_NETWORK:                     "EMBER_MAC_JOINED_NETWORK",
+	EMBER_MAC_BAD_SCAN_DURATION:                  "EMBER_MAC_BAD_SCAN_DURATION",
+	EMBER_MAC_INCORRECT_SCAN_TYPE:                "EMBER_MAC_INCORRECT_SCAN_TYPE",
+	EMBER_MAC_INVALID_CHANNEL_MASK:               "EMBER_MAC_INVALID_CHANNEL_MASK",
+	EMBER_MAC_COMMAND_TRANSMIT_FAILURE:           "EMBER_MAC_COMMAND_TRANSMIT_FAILURE",
+	EMBER_MAC_NO_ACK_RECEIVED:                    "EMBER_MAC_NO_ACK_RECEIVED",
+	EMBER_MAC_RADIO_NETWORK_SWITCH_FAILED:        "EMBER_MAC_RADIO_NETWORK_SWITCH_FAILED",
+	EMBER_MAC_INDIRECT_TIMEOUT:                   "EMBER_MAC_INDIRECT_TIMEOUT",
+	EMBER_SIM_EEPROM_ERASE_PAGE_GREEN:            "EMBER_SIM_EEPROM_ERASE_PAGE_GREEN",
+	EMBER_SIM_EEPROM_ERASE_PAGE_RED:              "EMBER_SIM_EEPROM_ERASE_PAGE_RED",
+	EMBER_SIM_EEPROM_FULL:                        "EMBER_SIM_EEPROM_FULL",
+	EMBER_SIM_EEPROM_INIT_1_FAILED:               "EMBER_SIM_EEPROM_INIT_1_FAILED",
+	EMBER_SIM_EEPROM_INIT_2_FAILED:               "EMBER_SIM_EEPROM_INIT_2_FAILED",
+	EMBER_SIM_EEPROM_INIT_3_FAILED:               "EMBER_SIM_EEPROM_INIT_3_FAILED",
+	EMBER_SIM_EEPROM_REPAIRING:                   "EMBER_SIM_EEPROM_REPAIRING",
+	EMBER_ERR_FLASH_WRITE_INHIBITED:              "EMBER_ERR_FLASH_WRITE_INHIBITED",
+	EMBER_ERR_FLASH_VERIFY_FAILED:                "EMBER_ERR_FLASH_VERIFY_FAILED",
+	EMBER_ERR_FLASH_PROG_FAIL:                    "EMBER_ERR_FLASH_PROG_FAIL",
+	EMBER_ERR_FLASH_ERASE_FAIL:                   "EMBER_ERR_FLASH_ERASE_FAIL",
+	EMBER_ERR_BOOTLOADER_TRAP_TABLE_BAD:          "EMBER_ERR_BOOTLOADER_TRAP_TABLE_BAD",
+	EMBER_ERR_BOOTLOADER_TRAP_UNKNOWN:            "EMBER_ERR_BOOTLOADER_TRAP_UNKNOWN",
+	EMBER_ERR_BOOTLOADER_NO_IMAGE:                "EMBER_ERR_BOOTLOADER_NO_IMAGE",
+	EMBER_DELIVERY_FAILED:                        "EMBER_DELIVERY_FAILED",
+	EMBER_BINDING_INDEX_OUT_OF_RANGE:             "EMBER_BINDING_INDEX_OUT_OF_RANGE",
+	EMBER_ADDRESS_TABLE_INDEX_OUT_OF_RANGE:       "EMBER_ADDRESS_TABLE_INDEX_OUT_OF_RANGE",
+	EMBER_INVALID_BINDING_INDEX:                  "EMBER_INVALID_BINDING_INDEX",
+	EMBER_INVALID_CALL:                           "EMBER_INVALID_CALL",
+	EMBER_COST_NOT_KNOWN:                         "EMBER_COST_NOT_KNOWN",
+	EMBER_MAX_MESSAGE_LIMIT_REACHED:              "EMBER_MAX_MESSAGE_LIMIT_REACHED",
+	EMBER_MESSAGE_TOO_LONG:                       "EMBER_MESSAGE_TOO_LONG",
+	EMBER_BINDING_IS_ACTIVE:                      "EMBER_BINDING_IS_ACTIVE",
+	EMBER_ADDRESS_TABLE_ENTRY_IS_ACTIVE:          "EMBER_ADDRESS_TABLE_ENTRY_IS_ACTIVE",
+	EMBER_ADC_CONVERSION_DONE:                    "EMBER_ADC_CONVERSION_DONE",
+	EMBER_ADC_CONVERSION_BUSY:                    "EMBER_ADC_CONVERSION_BUSY",
+	EMBER_ADC_CONVERSION_DEFERRED:                "EMBER_ADC_CONVERSION_DEFERRED",
+	EMBER_ADC_NO_CONVERSION_PENDING:              "EMBER_ADC_NO_CONVERSION_PENDING",
+	EMBER_SLEEP_INTERRUPTED:                      "EMBER_SLEEP_INTERRUPTED",
+	EMBER_PHY_TX_UNDERFLOW:                       "EMBER_PHY_TX_UNDERFLOW",
+	EMBER_PHY_TX_INCOMPLETE:                      "EMBER_PHY_TX_INCOMPLETE",
+	EMBER_PHY_INVALID_CHANNEL:                    "EMBER_PHY_INVALID_CHANNEL",
+	EMBER_PHY_INVALID_POWER:                      "EMBER_PHY_INVALID_POWER",
+	EMBER_PHY_TX_BUSY:                            "EMBER_PHY_TX_BUSY",
+	EMBER_PHY_TX_CCA_FAIL:                        "EMBER_PHY_TX_CCA_FAIL",
+	EMBER_PHY_OSCILLATOR_CHECK_FAILED:            "EMBER_PHY_OSCILLATOR_CHECK_FAILED",
+	EMBER_PHY_ACK_RECEIVED:                       "EMBER_PHY_ACK_RECEIVED",
+	EMBER_NETWORK_UP:                             "EMBER_NETWORK_UP",
+	EMBER_NETWORK_DOWN:                           "EMBER_NETWORK_DOWN",
+	EMBER_JOIN_FAILED:                            "EMBER_JOIN_FAILED",
+	EMBER_MOVE_FAILED:                            "EMBER_MOVE_FAILED",
+	EMBER_CANNOT_JOIN_AS_ROUTER:                  "EMBER_CANNOT_JOIN_AS_ROUTER",
+	EMBER_NODE_ID_CHANGED:                        "EMBER_NODE_ID_CHANGED",
+	EMBER_PAN_ID_CHANGED:                         "EMBER_PAN_ID_CHANGED",
+	EMBER_CHANNEL_CHANGED:                        "EMBER_CHANNEL_CHANGED",
+	EMBER_NO_BEACONS:                             "EMBER_NO_BEACONS",
+	EMBER_RECEIVED_KEY_IN_THE_CLEAR:              "EMBER_RECEIVED_KEY_IN_THE_CLEAR",
+	EMBER_NO_NETWORK_KEY_RECEIVED:                "EMBER_NO_NETWORK_KEY_RECEIVED",
+	EMBER_NO_LINK_KEY_RECEIVED:                   "EMBER_NO_LINK_KEY_RECEIVED",
+	EMBER_PRECONFIGURED_KEY_REQUIRED:             "EMBER_PRECONFIGURED_KEY_REQUIRED",
+	EMBER_KEY_INVALID:                            "EMBER_KEY_INVALID",
+	EMBER_INVALID_SECURITY_LEVEL:                 "EMBER_INVALID_SECURITY_LEVEL",
+	EMBER_APS_ENCRYPTION_ERROR:                   "EMBER_APS_ENCRYPTION_ERROR",
+	EMBER_TRUST_CENTER_MASTER_KEY_NOT_SET:        "EMBER_TRUST_CENTER_MASTER_KEY_NOT_SET",
+	EMBER_SECURITY_STATE_NOT_SET:                 "EMBER_SECURITY_STATE_NOT_SET",
+	EMBER_KEY_TABLE_INVALID_ADDRESS:              "EMBER_KEY_TABLE_INVALID_ADDRESS",
+	EMBER_SECURITY_CONFIGURATION_INVALID:         "EMBER_SECURITY_CONFIGURATION_INVALID",
+	EMBER_TOO_SOON_FOR_SWITCH_KEY:                "EMBER_TOO_SOON_FOR_SWITCH_KEY",
+	EMBER_SIGNATURE_VERIFY_FAILURE:               "EMBER_SIGNATURE_VERIFY_FAILURE",
+	EMBER_KEY_NOT_AUTHORIZED:                     "EMBER_KEY_NOT_AUTHORIZED",
+	EMBER_SECURITY_DATA_INVALID:                  "EMBER_SECURITY_DATA_INVALID",
+	EMBER_NOT_JOINED:                             "EMBER_NOT_JOINED",
+	EMBER_NETWORK_BUSY:                           "EMBER_NETWORK_BUSY",
+	EMBER_INVALID_ENDPOINT:                       "EMBER_INVALID_ENDPOINT",
+	EMBER_BINDING_HAS_CHANGED:                    "EMBER_BINDING_HAS_CHANGED",
+	EMBER_INSUFFICIENT_RANDOM_DATA:               "EMBER_INSUFFICIENT_RANDOM_DATA",
+	EMBER_SOURCE_ROUTE_FAILURE:                   "EMBER_SOURCE_ROUTE_FAILURE",
+	EMBER_MANY_TO_ONE_ROUTE_FAILURE:              "EMBER_MANY_TO_ONE_ROUTE_FAILURE",
+	EMBER_STACK_AND_HARDWARE_MISMATCH:            "EMBER_STACK_AND_HARDWARE_MISMATCH",
+	EMBER_INDEX_OUT_OF_RANGE:                     "EMBER_INDEX_OUT_OF_RANGE",
+	EMBER_TABLE_FULL:                             "EMBER_TABLE_FULL",
+	EMBER_TABLE_ENTRY_ERASED:                     "EMBER_TABLE_ENTRY_ERASED",
+	EMBER_LIBRARY_NOT_PRESENT:                    "EMBER_LIBRARY_NOT_PRESENT",
+	EMBER_OPERATION_IN_PROGRESS:                  "EMBER_OPERATION_IN_PROGRESS",
+	EMBER_TRUST_CENTER_EUI_HAS_CHANGED:           "EMBER_TRUST_CENTER_EUI_HAS_CHANGED",
+	EMBER_NO_RESPONSE:                            "EMBER_NO_RESPONSE",
+	EMBER_DUPLICATE_ENTRY:                        "EMBER_DUPLICATE_ENTRY",
+	EMBER_NOT_PERMITTED:                          "EMBER_NOT_PERMITTED",
+	EMBER_DISCOVERY_TIMEOUT:                      "EMBER_DISCOVERY_TIMEOUT",
+	EMBER_DISCOVERY_ERROR:                        "EMBER_DISCOVERY_ERROR",
+	EMBER_SECURITY_TIMEOUT:                       "EMBER_SECURITY_TIMEOUT",
+	EMBER_SECURITY_FAILURE:                       "EMBER_SECURITY_FAILURE",
+	EMBER_APPLICATION_ERROR_0:                    "EMBER_APPLICATION_ERROR_0",
+	EMBER_APPLICATION_ERROR_1:                    "EMBER_APPLICATION_ERROR_1",
+	EMBER_APPLICATION_ERROR_2:                    "EMBER_APPLICATION_ERROR_2",
+	EMBER_APPLICATION_ERROR_3:                    "EMBER_APPLICATION_ERROR_3",
+	EMBER_APPLICATION_ERROR_4:                    "EMBER_APPLICATION_ERROR_4",
+	EMBER_APPLICATION_ERROR_5:                    "EMBER_APPLICATION_ERROR_5",
+	EMBER_APPLICATION_ERROR_6:                    "EMBER_APPLICATION_ERROR_6",
+	EMBER_APPLICATION_ERROR_7:                    "EMBER_APPLICATION_ERROR_7",
+	EMBER_APPLICATION_ERROR_8:                    "EMBER_APPLICATION_ERROR_8",
+	EMBER_APPLICATION_ERROR_9:                    "EMBER_APPLICATION_ERROR_9",
+	EMBER_APPLICATION_ERROR_10:                   "EMBER_APPLICATION_ERROR_10",
+	EMBER_APPLICATION_ERROR_11:                   "EMBER_APPLICATION_ERROR_11",
+	EMBER_APPLICATION_ERROR_12:                   "EMBER_APPLICATION_ERROR_12",
+	EMBER_APPLICATION_ERROR_13:                   "EMBER_APPLICATION_ERROR_13",
+	EMBER_APPLICATION_ERROR_14:                   "EMBER_APPLICATION_ERROR_14",
+	EMBER_APPLICATION_ERROR_15:                   "EMBER_APPLICATION_ERROR_15",
+}
+
 // **************** EzspStatus ****************
 const (
 	// Success.
@@ -979,7 +1250,7 @@ const (
 	DEFAULT_EZSP_CONFIG_ZLL_RSSI_THRESHOLD                       = uint16(128)
 )
 
-// **************** EzspGetValue ID ****************
+// **************** Value ID ****************
 const (
 	// The contents of the node data stack token.
 	EZSP_VALUE_TOKEN_STACK_NODE_DATA = byte(0x00)
@@ -1079,6 +1350,250 @@ const (
 	EZSP_VALUE_RF4CE_SUPPORTED_DEVICE_TYPES_LIST = byte(0x27)
 	// The RF4CE profiles supported by the node
 	EZSP_VALUE_RF4CE_SUPPORTED_PROFILES_LIST = byte(0x28)
+)
+
+// **************** Policy ID ****************
+const (
+	// Controls trust center behavior.
+	EZSP_TRUST_CENTER_POLICY = byte(0x00)
+	// Controls how external binding modification requests are handled.
+	EZSP_BINDING_MODIFICATION_POLICY = byte(0x01)
+	// Controls whether the Host supplies unicast replies.
+	EZSP_UNICAST_REPLIES_POLICY = byte(0x02)
+	// Controls whether pollHandler callbacks are generated.
+	EZSP_POLL_HANDLER_POLICY = byte(0x03)
+	// Controls whether the message contents are included in the
+	// messageSentHandler callback.
+	EZSP_MESSAGE_CONTENTS_IN_CALLBACK_POLICY = byte(0x04)
+	// Controls whether the Trust Center will respond to Trust Center link key
+	// requests.
+	EZSP_TC_KEY_REQUEST_POLICY = byte(0x05)
+	// Controls whether the Trust Center will respond to application link key
+	// requests.
+	EZSP_APP_KEY_REQUEST_POLICY = byte(0x06)
+	// Controls whether ZigBee packets that appear invalid are automatically
+	// dropped by the stack. A counter will be incremented when this occurs.
+	EZSP_PACKET_VALIDATE_LIBRARY_POLICY = byte(0x07)
+	// Controls whether the stack will process ZLL messages.
+	EZSP_ZLL_POLICY = byte(0x08)
+	// Controls whether the ZigBee RF4CE stack will use standard profile-dependent
+	// behavior during the discovery and pairing process. The profiles supported
+	// at the NCP at the moment are ZRC 1.1 and MSO. If this policy is enabled the
+	// stack will use standard behavior for the profiles ZRC 1.1 and MSO while it
+	// will fall back to the on/off RF4CE policies for other profiles. If this
+	// policy is disabled the on/off RF4CE policies are used for all profiles.
+	EZSP_RF4CE_DISCOVERY_AND_PAIRING_PROFILE_BEHAVIOR_POLICY = byte(0x09)
+	// Controls whether the ZigBee RF4CE stack will respond to an incoming
+	// discovery request or not.
+	EZSP_RF4CE_DISCOVERY_REQUEST_POLICY = byte(0x0A)
+	// Controls the behavior of the ZigBee RF4CE stack discovery process.
+	EZSP_RF4CE_DISCOVERY_POLICY = byte(0x0B)
+	// Controls whether the ZigBee RF4CE stack will accept or deny a pair request.
+	EZSP_RF4CE_PAIR_REQUEST_POLICY = byte(0x0C)
+)
+
+// **************** Decision ID ****************
+const (
+	// Send the network key in the clear to all joining and rejoining devices.
+	EZSP_ALLOW_JOINS = byte(0x00)
+	// Send the network key in the clear to all joining devices. Rejoining devices
+	// are sent the network key encrypted with their trust center link key. The
+	// trust center and any rejoining device are assumed to share a link key)
+	// either preconfigured or obtained under a previous policy.
+	EZSP_ALLOW_JOINS_REJOINS_HAVE_LINK_KEY = byte(0x04)
+	// Send the network key encrypted with the joining or rejoining device's trust
+	// center link key. The trust center and any joining or rejoining device are
+	// assumed to share a link key, either preconfigured or obtained under a
+	// previous policy. This is the default value for the
+	// EZSP_TRUST_CENTER_POLICY.
+	EZSP_ALLOW_PRECONFIGURED_KEY_JOINS = byte(0x01)
+	// Send the network key encrypted with the rejoining device's trust center
+	// link key. The trust center and any rejoining device are assumed to share a
+	// link key, either preconfigured or obtained under a previous policy. No new
+	// devices are allowed to join.
+	EZSP_ALLOW_REJOINS_ONLY = byte(0x02)
+	// Reject all unsecured join and rejoin attempts.
+	EZSP_DISALLOW_ALL_JOINS_AND_REJOINS = byte(0x03)
+	// EZSP_BINDING_MODIFICATION_POLICY default decision. Do not allow the local
+	// binding table to be changed by remote nodes.
+	EZSP_DISALLOW_BINDING_MODIFICATION = byte(0x10)
+	// EZSP_BINDING_MODIFICATION_POLICY decision. Allow remote nodes to change the
+	// local binding table.
+	EZSP_ALLOW_BINDING_MODIFICATION = byte(0x11)
+	// EZSP_BINDING_MODIFICATION_POLICY decision. Allows remote nodes to set local
+	// binding entries only if the entries correspond to endpoints defined on the
+	// device, and for output clusters bound to those endpoints.
+	EZSP_CHECK_BINDING_MODIFICATIONS_ARE_VALID_ENDPOINT_CLUSTERS = byte(0x12)
+	// EZSP_UNICAST_REPLIES_POLICY default decision. The NCP will automatically
+	// send an empty reply (containing no payload) for every unicast received.
+	EZSP_HOST_WILL_NOT_SUPPLY_REPLY = byte(0x20)
+	// EZSP_UNICAST_REPLIES_POLICY decision. The NCP will only send a reply if it
+	// receives a sendReply command from the Host.
+	EZSP_HOST_WILL_SUPPLY_REPLY = byte(0x21)
+	// EZSP_POLL_HANDLER_POLICY default decision. Do not inform the Host when a
+	// child polls.
+	EZSP_POLL_HANDLER_IGNORE = byte(0x30)
+	// EZSP_POLL_HANDLER_POLICY decision. Generate a pollHandler callback when a
+	// child polls.
+	EZSP_POLL_HANDLER_CALLBACK = byte(0x31)
+	// EZSP_MESSAGE_CONTENTS_IN_CALLBACK_POLICY default decision. Include only the
+	// message tag in the messageSentHandler callback.
+	EZSP_MESSAGE_TAG_ONLY_IN_CALLBACK = byte(0x40)
+	// EZSP_MESSAGE_CONTENTS_IN_CALLBACK_POLICY decision. Include both the message
+	// tag and the message contents in the messageSentHandler callback.
+	EZSP_MESSAGE_TAG_AND_CONTENTS_IN_CALLBACK = byte(0x41)
+	// EZSP_TC_KEY_REQUEST_POLICY decision. When the Trust Center receives a
+	// request for a Trust Center link key, it will be ignored.
+	EZSP_DENY_TC_KEY_REQUESTS = byte(0x50)
+	// EZSP_TC_KEY_REQUEST_POLICY decision. When the Trust Center receives a
+	// request for a Trust Center link key, it will reply to it with the
+	// corresponding key.
+	EZSP_ALLOW_TC_KEY_REQUESTS = byte(0x51)
+	// EZSP_APP_KEY_REQUEST_POLICY decision. When the Trust Center receives a
+	// request for an application link key, it will be ignored.
+	EZSP_DENY_APP_KEY_REQUESTS = byte(0x60)
+	// EZSP_APP_KEY_REQUEST_POLICY decision. When the Trust Center receives a
+	// request for an application link key, it will randomly generate a key and
+	// send it to both partners.
+	EZSP_ALLOW_APP_KEY_REQUESTS = byte(0x61)
+	// Indicates that packet validate library checks are enabled on the NCP.
+	EZSP_PACKET_VALIDATE_LIBRARY_CHECKS_ENABLED = byte(0x62)
+	// Indicates that packet validate library checks are NOT enabled on the NCP.
+	EZSP_PACKET_VALIDATE_LIBRARY_CHECKS_DISABLED = byte(0x63)
+	// Indicates that the RF4CE stack during discovery and pairing will use
+	// standard profile-dependent behavior for the profiles ZRC 1.1 and MSO, while
+	// it will fall back to the on/off policies for any other profile.
+	EZSP_RF4CE_DISCOVERY_AND_PAIRING_PROFILE_BEHAVIOR_ENABLED = byte(0x70)
+	// Indicates that the RF4CE stack during discovery and pairing will always use
+	// the on/off policies.
+	EZSP_RF4CE_DISCOVERY_AND_PAIRING_PROFILE_BEHAVIOR_DISABLED = byte(0x71)
+	// Indicates that the RF4CE stack will respond to incoming discovery requests.
+	EZSP_RF4CE_DISCOVERY_REQUEST_RESPOND = byte(0x72)
+	// Indicates that the RF4CE stack will ignore incoming discovery requests.
+	EZSP_RF4CE_DISCOVERY_REQUEST_IGNORE = byte(0x73)
+	// Indicates that the RF4CE stack will perform all the discovery trials the
+	// application specified in the ezspRf4ceDiscovery() call.
+	EZSP_RF4CE_DISCOVERY_MAX_DISCOVERY_TRIALS = byte(0x74)
+	// Indicates that the RF4CE stack will prematurely stop the discovery process
+	// if a matching discovery response is received.
+	EZSP_RF4CE_DISCOVERY_STOP_ON_MATCHING_RESPONSE = byte(0x75)
+	// Indicates that the RF4CE stack will accept new pairings.
+	EZSP_RF4CE_PAIR_REQUEST_ACCEPT = byte(0x76)
+	// Indicates that the RF4CE stack will NOT accept new pairings.
+	EZSP_RF4CE_PAIR_REQUEST_DENY = byte(0x77)
+)
+
+// **************** MfgToken ID ****************
+const (
+	// Custom version (2 bytes).
+	EZSP_MFG_CUSTOM_VERSION = byte(0x00)
+	// Manufacturing string (16 bytes).
+	EZSP_MFG_STRING = byte(0x01)
+	// Board name (16 bytes).
+	EZSP_MFG_BOARD_NAME = byte(0x02)
+	// Manufacturing ID (2 bytes).
+	EZSP_MFG_MANUF_ID = byte(0x03)
+	// Radio configuration (2 bytes).
+	EZSP_MFG_PHY_CONFIG = byte(0x04)
+	// Bootload AES key (16 bytes).
+	EZSP_MFG_BOOTLOAD_AES_KEY = byte(0x05)
+	// ASH configuration (40 bytes).
+	EZSP_MFG_ASH_CONFIG = byte(0x06)
+	// EZSP storage (8 bytes).
+	EZSP_MFG_EZSP_STORAGE = byte(0x07)
+	// Radio calibration data (64 bytes). 4 bytes are stored for each of the 16
+	// channels. This token is not stored in the Flash Information Area. It is
+	// updated by the stack each time a calibration is performed.
+	EZSP_STACK_CAL_DATA = byte(0x08)
+	// Certificate Based Key Exchange (CBKE) data (92 bytes).
+	EZSP_MFG_CBKE_DATA = byte(0x09)
+	// Installation code (20 bytes).
+	EZSP_MFG_INSTALLATION_CODE = byte(0x0A)
+	// Radio channel filter calibration data (1 byte). This token is not stored in
+	// the Flash Information Area. It is updated by the stack each time a
+	// calibration is performed.
+	EZSP_STACK_CAL_FILTER = byte(0x0B)
+	// Custom EUI64 MAC address (8 bytes).
+	EZSP_MFG_CUSTOM_EUI_64 = byte(0x0C)
+)
+
+// **************** GPIO Port PIN number ****************
+const (
+	PORTA_PIN0 = byte((0 << 3) | 0)
+	PORTA_PIN1 = byte((0 << 3) | 1)
+	PORTA_PIN2 = byte((0 << 3) | 2)
+	PORTA_PIN3 = byte((0 << 3) | 3)
+	PORTA_PIN4 = byte((0 << 3) | 4)
+	PORTA_PIN5 = byte((0 << 3) | 5)
+	PORTA_PIN6 = byte((0 << 3) | 6)
+	PORTA_PIN7 = byte((0 << 3) | 7)
+
+	PORTB_PIN0 = byte((1 << 3) | 0)
+	PORTB_PIN1 = byte((1 << 3) | 1)
+	PORTB_PIN2 = byte((1 << 3) | 2)
+	PORTB_PIN3 = byte((1 << 3) | 3)
+	PORTB_PIN4 = byte((1 << 3) | 4)
+	PORTB_PIN5 = byte((1 << 3) | 5)
+	PORTB_PIN6 = byte((1 << 3) | 6)
+	PORTB_PIN7 = byte((1 << 3) | 7)
+
+	PORTC_PIN0 = byte((2 << 3) | 0)
+	PORTC_PIN1 = byte((2 << 3) | 1)
+	PORTC_PIN2 = byte((2 << 3) | 2)
+	PORTC_PIN3 = byte((2 << 3) | 3)
+	PORTC_PIN4 = byte((2 << 3) | 4)
+	PORTC_PIN5 = byte((2 << 3) | 5)
+	PORTC_PIN6 = byte((2 << 3) | 6)
+	PORTC_PIN7 = byte((2 << 3) | 7)
+
+	PORTD_PIN0 = byte((3 << 3) | 0)
+	PORTD_PIN1 = byte((3 << 3) | 1)
+	PORTD_PIN2 = byte((3 << 3) | 2)
+	PORTD_PIN3 = byte((3 << 3) | 3)
+	PORTD_PIN4 = byte((3 << 3) | 4)
+	PORTD_PIN5 = byte((3 << 3) | 5)
+	PORTD_PIN6 = byte((3 << 3) | 6)
+	PORTD_PIN7 = byte((3 << 3) | 7)
+
+	PORTE_PIN0 = byte((4 << 3) | 0)
+	PORTE_PIN1 = byte((4 << 3) | 1)
+	PORTE_PIN2 = byte((4 << 3) | 2)
+	PORTE_PIN3 = byte((4 << 3) | 3)
+	PORTE_PIN4 = byte((4 << 3) | 4)
+	PORTE_PIN5 = byte((4 << 3) | 5)
+	PORTE_PIN6 = byte((4 << 3) | 6)
+	PORTE_PIN7 = byte((4 << 3) | 7)
+
+	PORTF_PIN0 = byte((5 << 3) | 0)
+	PORTF_PIN1 = byte((5 << 3) | 1)
+	PORTF_PIN2 = byte((5 << 3) | 2)
+	PORTF_PIN3 = byte((5 << 3) | 3)
+	PORTF_PIN4 = byte((5 << 3) | 4)
+	PORTF_PIN5 = byte((5 << 3) | 5)
+	PORTF_PIN6 = byte((5 << 3) | 6)
+	PORTF_PIN7 = byte((5 << 3) | 7)
+)
+
+// **************** Node type ****************
+const (
+	/** Device is not joined */
+	EMBER_UNKNOWN_DEVICE = byte(0)
+	/** Will relay messages and can act as a parent to other nodes. */
+	EMBER_COORDINATOR = byte(1)
+	/** Will relay messages and can act as a parent to other nodes. */
+	EMBER_ROUTER = byte(2)
+	/** Communicates only with its parent and will not relay messages. */
+	EMBER_END_DEVICE = byte(3)
+	/** An end device whose radio can be turned off to save power.
+	 *  The application must call ::emberPollForData() to receive messages.
+	 */
+	EMBER_SLEEPY_END_DEVICE = byte(4)
+	/** A sleepy end device that can move through the network. */
+	EMBER_MOBILE_END_DEVICE = byte(5)
+	/** RF4CE target node. */
+	EMBER_RF4CE_TARGET = byte(6)
+	/** RF4CE controller node. */
+	EMBER_RF4CE_CONTROLLER = byte(7)
 )
 
 // **************** Other const ****************

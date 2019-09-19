@@ -36,7 +36,7 @@ func (ezspFrame EzspFrame) String() (s string) {
 	} else if ezspFrame.Callback == 1 {
 		s += "(sync)"
 	}
-	s += fmt.Sprintf(" seq=0x%x 0x%x", ezspFrame.Sequence, ezspFrame.Data)
+	s += fmt.Sprintf(" 0x%x", ezspFrame.Data)
 	return
 }
 
@@ -157,7 +157,7 @@ func EzspFrameSend(frmID byte, data []byte) (*EzspFrame, error) {
 		responseChMapClear(seq)
 		return nil, fmt.Errorf("EZSP send %s(seq=%d) failed: ash send failed: %v", frameIDToName(frmID), seq, err)
 	}
-	ezspFrameTrace("EZSP send > %s seq=0x%x 0x%x", frameIDToName(frmID), seq, data)
+	ezspFrameTrace("EZSP send > %s 0x%x", frameIDToName(frmID), data)
 
 	select {
 	case response := <-responseChMap[seq]:
