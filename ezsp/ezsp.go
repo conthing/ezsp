@@ -3,16 +3,32 @@ package ezsp
 import (
 	"fmt"
 
+	"encoding/binary"
+
 	"github.com/conthing/utils/common"
 )
 
-var ncpProtocolVersion byte
-var ncpStackType byte
-var ncpStackVersion string
+// StModuleInfo
+type StModuleInfo struct {
+	ModuleType      string `json:"moduletype"`
+	ProtocolVersion byte   `json:"protocolversion"`
+	StackType       byte   `json:"stacktype"`
+	StackVersion    string `json:"stackversion"`
+}
+
+// StMeshInfo
+type StMeshInfo struct {
+	ExPANID string `json:"expanid"`
+	PANID   uint16 `json:"panid"`
+	Channel byte   `json:"channel"`
+}
+
+var ModuleInfo = StModuleInfo{ModuleType: "EM357"}
+var MeshInfo StMeshInfo
 
 func NcpGetVersion() (err error) {
 	var stackVersion uint16
-	ncpProtocolVersion, ncpStackType, stackVersion, err = EzspVersion(EZSP_PROTOCOL_VERSION)
+	ModuleInfo.ProtocolVersion, ModuleInfo.StackType, stackVersion, err = EzspVersion(EZSP_PROTOCOL_VERSION)
 	if err != nil {
 		return fmt.Errorf("EzspVersion failed: %v", err)
 	}
@@ -20,14 +36,14 @@ func NcpGetVersion() (err error) {
 	emberVersion, err := EzspGetValue_VERSION_INFO()
 	if err != nil {
 		common.Log.Errorf("EzspGetValue_VERSION_INFO failed: %v", err)
-		ncpStackVersion = fmt.Sprintf("%d.%d.%d.%d", (stackVersion>>12)&0xF, (stackVersion>>8)&0xF, (stackVersion>>4)&0xF, stackVersion&0xF)
+		ModuleInfo.StackVersion = fmt.Sprintf("%d.%d.%d.%d", (stackVersion>>12)&0xF, (stackVersion>>8)&0xF, (stackVersion>>4)&0xF, stackVersion&0xF)
 	} else {
-		ncpStackVersion = emberVersion.String()
+		ModuleInfo.StackVersion = emberVersion.String()
 	}
 
 	//common.Log.Infof("%v", stackVersion)
 
-	common.Log.Infof("NcpGetVersion: protocolVersion(%d) stackType(%d) stackVersion(%s)", ncpProtocolVersion, ncpStackType, ncpStackVersion)
+	common.Log.Infof("NcpGetVersion: protocolVersion(%d) stackType(%d) stackVersion(%s)", ModuleInfo.ProtocolVersion, ModuleInfo.StackType, ModuleInfo.StackVersion)
 	return nil
 }
 
@@ -163,6 +179,26 @@ func ncpSetRadio() (err error) {
 //		}
 //	}
 //}
+
+func NcpGetAndIncRebootCnt() (rebootCnt uint16, err error) {
+	//tokenId=0的8个字节定义成NCP使用，低2字节为rebootCnt
+	tokenData, err := EzspGetToken(0)
+	if err != nil {
+		return 0, fmt.Errorf("EzspGetToken(0) failed: %v", err)
+	}
+
+	rebootCnt = binary.LittleEndian.Uint16(tokenData)
+
+	//rebootCnt递增并存储
+	rebootCnt++
+	tokenData[0] = byte(rebootCnt)
+	tokenData[1] = byte(rebootCnt >> 8)
+	err = EzspSetToken(0, tokenData)
+	if err != nil {
+		return rebootCnt, fmt.Errorf("EzspSetToken(0) failed: %v", err)
+	}
+	return
+}
 
 func NcpTick() {
 	select {

@@ -23,21 +23,27 @@ func TickRunning(_ chan error) {
 		common.Log.Errorf("NcpGetVersion failed: %v", err)
 	}
 
-	err = ezsp.NcpConfig()
-	if err != nil {
-		common.Log.Errorf("NcpConfig failed: %v", err)
-	}
+	common.Log.Infof("module info : %+v", ezsp.ModuleInfo)
 
-	ezsp.NcpPrintAllConfigurations()
+	//err = ezsp.NcpConfig()
+	//if err != nil {
+	//	common.Log.Errorf("NcpConfig failed: %v", err)
+	//}
+
+	//ezsp.NcpPrintAllConfigurations()
 	//common.Log.Infof("NcpPrintAllConfigurations OK")
 
-	eui64, err := ezsp.EzspGetEUI64()
+	rebootCnt, err := ezsp.NcpGetAndIncRebootCnt()
 	if err != nil {
-		common.Log.Errorf("EzspGetEUI64 failed: %v", err)
+		common.Log.Errorf("NcpGetAndIncRebootCnt failed: %v", err)
 	}
-	common.Log.Infof("EUI64 = %016x", eui64)
+	common.Log.Infof("NCP reboot %d", rebootCnt)
 
-	
+	//eui64, err := ezsp.EzspGetEUI64()
+	//if err != nil {
+	//	common.Log.Errorf("EzspGetEUI64 failed: %v", err)
+	//}
+	//common.Log.Infof("EUI64 = %016x", eui64)
 
 	for {
 		ezsp.NcpTick()

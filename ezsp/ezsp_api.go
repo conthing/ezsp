@@ -302,7 +302,7 @@ func EzspSetToken(tokenId byte, tokenData []byte) (err error) {
 		err = fmt.Errorf("EzspSetToken(0x%x, 0x%x) tokenData lenght != 8", tokenId, tokenData)
 		return
 	}
-	data := []byte{tokenId, byte(len(tokenData))}
+	data := []byte{tokenId}
 	data = append(data, tokenData...)
 	response, err := EzspFrameSend(EZSP_SET_TOKEN, data)
 	if err == nil {

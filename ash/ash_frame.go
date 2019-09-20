@@ -79,7 +79,13 @@ func ashFrameRxByteParse(recvChar byte) (err error) {
 			err = fmt.Errorf("rx frame crc error < 0x%x", readBuffer[:readBufferOffset])
 		} else {
 			ashFrameTrace("rx < 0x%x", readBuffer[:readBufferOffset])
-			err = ashRecvFrame(readBuffer[:readBufferOffset-2])
+			//将接收的数据deepcopy
+			frame := make([]byte, readBufferOffset-2)
+			for i := range frame {
+				frame[i] = readBuffer[i]
+			}
+			//ashRecvFrame 中很可能会发生进程调度
+			err = ashRecvFrame(frame)
 		}
 	} else {
 		readBuffer[readBufferOffset] = recvChar
