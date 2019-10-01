@@ -25,13 +25,13 @@ func TickRunning(_ chan error) {
 
 	common.Log.Infof("module info : %+v", ezsp.ModuleInfo)
 
-	//err = ezsp.NcpConfig()
-	//if err != nil {
-	//	common.Log.Errorf("NcpConfig failed: %v", err)
-	//}
+	err = ezsp.NcpConfig()
+	if err != nil {
+		common.Log.Errorf("NcpConfig failed: %v", err)
+	}
 
-	//ezsp.NcpPrintAllConfigurations()
-	//common.Log.Infof("NcpPrintAllConfigurations OK")
+	ezsp.NcpPrintAllConfigurations()
+	common.Log.Infof("NcpPrintAllConfigurations OK")
 
 	rebootCnt, err := ezsp.NcpGetAndIncRebootCnt()
 	if err != nil {
@@ -39,15 +39,20 @@ func TickRunning(_ chan error) {
 	}
 	common.Log.Infof("NCP reboot %d", rebootCnt)
 
-	//eui64, err := ezsp.EzspGetEUI64()
-	//if err != nil {
-	//	common.Log.Errorf("EzspGetEUI64 failed: %v", err)
-	//}
-	//common.Log.Infof("EUI64 = %016x", eui64)
+	eui64, err := ezsp.EzspGetEUI64()
+	if err != nil {
+		common.Log.Errorf("EzspGetEUI64 failed: %v", err)
+	}
+	common.Log.Infof("EUI64 = %016x", eui64)
+
+	err = ezsp.NcpFormNetwork(0xff)
+	if err != nil {
+		common.Log.Errorf("NcpFormNetwork failed: %v", err)
+	}
+	common.Log.Infof("NcpFormNetwork OK")
 
 	for {
-		ezsp.NcpTick()
-
+		ezsp.EzspTick(nil)
 	}
 }
 

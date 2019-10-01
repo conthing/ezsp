@@ -1,37 +1,218 @@
 package ezsp
 
-import "github.com/conthing/utils/common"
+import (
+	"encoding/binary"
 
-func EzspCallbackDispatch(cb *EzspFrame) {
+	"github.com/conthing/utils/common"
+)
+
+type Networker interface {
+	EzspStackStatusHandler(emberStatus byte)
+	EzspMessageSentHandler(outgoingMessageType byte,
+		indexOrDestination uint16,
+		apsFrame *EmberApsFrame,
+		messageTag byte,
+		emberStatus byte,
+		message []byte)
+	EzspIncomingSenderEui64Handler(senderEui64 uint64)
+	EzspIncomingMessageHandler(incomingMessageType byte,
+		apsFrame *EmberApsFrame,
+		lastHopLqi byte,
+		lastHopRssi int8,
+		sender uint16,
+		bindingIndex byte,
+		addressIndex byte,
+		message []byte)
+	EzspIncomingRouteErrorHandler(emberStatus byte, target uint16)
+	EzspTrustCenterJoinHandler(newNodeId uint16,
+		newNodeEui64 uint64,
+		deviceUpdateStatus byte,
+		joinDecision byte,
+		parentOfNewNode uint16)
+	EzspEnergyScanResultHandler(channel byte, maxRssiValue int8)
+	EzspScanCompleteHandler(channel byte, emberStatus byte)
+	EzspNetworkFoundHandler(networkFound *EmberZigbeeNetwork, lqi byte, rssi int8)
+}
+
+func EzspTick(networker Networker) {
+	select {
+	case cb := <-callbackCh:
+		ezspCallbackDispatch(networker, cb)
+	}
+}
+
+func ezspCallbackDispatch(networker Networker, cb *EzspFrame) {
+
+	if cb == nil {
+		common.Log.Errorf("ezspCallbackDispatch with nil frame")
+		return
+	}
+	if cb.Data == nil {
+		common.Log.Errorf("ezspCallbackDispatch with nil Data")
+		return
+	}
+
 	common.Log.Debugf("callback:%s", frameIDToName(cb.FrameID))
+	if networker == nil {
+		common.Log.Errorf("ezspCallbackDispatch with nil networker")
+		return
+	}
 	switch cb.FrameID {
+	case EZSP_INCOMING_MESSAGE_HANDLER:
+		if len(cb.Data) < 17 {
+			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length", frameIDToName(cb.FrameID), len(cb.Data))
+			return
+		}
+
+		incomingMessageType := cb.Data[0]
+		apsFrame := EmberApsFrame{}
+		apsFrame.profileId = binary.LittleEndian.Uint16(cb.Data[1:])
+		apsFrame.clusterId = binary.LittleEndian.Uint16(cb.Data[3:])
+		apsFrame.sourceEndpoint = cb.Data[5]
+		apsFrame.destinationEndpoint = cb.Data[6]
+		apsFrame.options = binary.LittleEndian.Uint16(cb.Data[7:])
+		apsFrame.groupId = binary.LittleEndian.Uint16(cb.Data[9:])
+		apsFrame.sequence = cb.Data[11]
+		lastHopLqi := cb.Data[12]
+		lastHopRssi := int8(cb.Data[13])
+		sender := binary.LittleEndian.Uint16(cb.Data[14:])
+		bindingIndex := cb.Data[16]
+		addressIndex := cb.Data[17]
+		messageLength := cb.Data[18]
+		if len(cb.Data) != int(messageLength)+19 {
+			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length", frameIDToName(cb.FrameID), len(cb.Data))
+			return
+		}
+
+		networker.EzspIncomingMessageHandler(incomingMessageType,
+			&apsFrame,
+			lastHopLqi,
+			lastHopRssi,
+			sender,
+			bindingIndex,
+			addressIndex,
+			cb.Data[19:])
+
+	case EZSP_STACK_STATUS_HANDLER:
+		if len(cb.Data) != 1 {
+			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length", frameIDToName(cb.FrameID), len(cb.Data))
+			return
+		}
+		emberStatus := cb.Data[0]
+		networker.EzspStackStatusHandler(emberStatus)
+
+	case EZSP_INCOMING_SENDER_EUI64_HANDLER:
+		if len(cb.Data) != 8 {
+			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length", frameIDToName(cb.FrameID), len(cb.Data))
+			return
+		}
+		senderEui64 := binary.LittleEndian.Uint64(cb.Data)
+		networker.EzspIncomingSenderEui64Handler(senderEui64)
+
+	case EZSP_MESSAGE_SENT_HANDLER:
+		if len(cb.Data) < 17 {
+			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length", frameIDToName(cb.FrameID), len(cb.Data))
+			return
+		}
+		outgoingMessageType := cb.Data[0]
+		indexOrDestination := binary.LittleEndian.Uint16(cb.Data[1:])
+		apsFrame := EmberApsFrame{}
+		apsFrame.profileId = binary.LittleEndian.Uint16(cb.Data[3:])
+		apsFrame.clusterId = binary.LittleEndian.Uint16(cb.Data[5:])
+		apsFrame.sourceEndpoint = cb.Data[7]
+		apsFrame.destinationEndpoint = cb.Data[8]
+		apsFrame.options = binary.LittleEndian.Uint16(cb.Data[9:])
+		apsFrame.groupId = binary.LittleEndian.Uint16(cb.Data[11:])
+		apsFrame.sequence = cb.Data[13]
+		messageTag := cb.Data[14]
+		emberStatus := cb.Data[15]
+		messageLength := cb.Data[16]
+		if len(cb.Data) != int(messageLength)+17 {
+			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length", frameIDToName(cb.FrameID), len(cb.Data))
+			return
+		}
+
+		networker.EzspMessageSentHandler(outgoingMessageType,
+			indexOrDestination,
+			&apsFrame,
+			messageTag,
+			emberStatus,
+			cb.Data[17:])
+
+	case EZSP_INCOMING_ROUTE_ERROR_HANDLER:
+		if len(cb.Data) != 3 {
+			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length", frameIDToName(cb.FrameID), len(cb.Data))
+			return
+		}
+		emberStatus := cb.Data[0]
+		target := binary.LittleEndian.Uint16(cb.Data[1:])
+		networker.EzspIncomingRouteErrorHandler(emberStatus, target)
+
+	case EZSP_TRUST_CENTER_JOIN_HANDLER:
+		if len(cb.Data) != 14 {
+			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length", frameIDToName(cb.FrameID), len(cb.Data))
+			return
+		}
+		newNodeId := binary.LittleEndian.Uint16(cb.Data)
+		newNodeEui64 := binary.LittleEndian.Uint64(cb.Data[2:])
+		deviceUpdateStatus := cb.Data[10]
+		joinDecision := cb.Data[11]
+		parentOfNewNode := binary.LittleEndian.Uint16(cb.Data[12:])
+		networker.EzspTrustCenterJoinHandler(newNodeId,
+			newNodeEui64,
+			deviceUpdateStatus,
+			joinDecision,
+			parentOfNewNode)
+
 	case EZSP_NO_CALLBACKS:
 	case EZSP_STACK_TOKEN_CHANGED_HANDLER:
 	case EZSP_TIMER_HANDLER:
 	case EZSP_COUNTER_ROLLOVER_HANDLER:
 	case EZSP_CUSTOM_FRAME_HANDLER:
-	case EZSP_STACK_STATUS_HANDLER:
 	case EZSP_ENERGY_SCAN_RESULT_HANDLER:
+		if len(cb.Data) != 2 {
+			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length", frameIDToName(cb.FrameID), len(cb.Data))
+			return
+		}
+		channel := cb.Data[0]
+		maxRssiValue := int8(cb.Data[1])
+		networker.EzspEnergyScanResultHandler(channel, maxRssiValue)
 	case EZSP_NETWORK_FOUND_HANDLER:
+		if len(cb.Data) != 16 {
+			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length", frameIDToName(cb.FrameID), len(cb.Data))
+			return
+		}
+		networkFound := EmberZigbeeNetwork{}
+		networkFound.Channel = cb.Data[0]
+		networkFound.PanId = binary.LittleEndian.Uint16(cb.Data[1:])
+		networkFound.ExtendedPanId = binary.LittleEndian.Uint64(cb.Data[3:])
+		networkFound.AllowingJoin = (cb.Data[11] != 0)
+		networkFound.StackProfile = cb.Data[12]
+		networkFound.NwkUpdateId = cb.Data[13]
+		lqi := cb.Data[14]
+		rssi := int8(cb.Data[15])
+		networker.EzspNetworkFoundHandler(&networkFound, lqi, rssi)
 	case EZSP_SCAN_COMPLETE_HANDLER:
+		if len(cb.Data) != 2 {
+			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length", frameIDToName(cb.FrameID), len(cb.Data))
+			return
+		}
+		channel := cb.Data[0]
+		emberStatus := cb.Data[1]
+		networker.EzspScanCompleteHandler(channel, emberStatus)
 	case EZSP_CHILD_JOIN_HANDLER:
 	case EZSP_REMOTE_SET_BINDING_HANDLER:
 	case EZSP_REMOTE_DELETE_BINDING_HANDLER:
-	case EZSP_MESSAGE_SENT_HANDLER:
 	case EZSP_POLL_COMPLETE_HANDLER:
 	case EZSP_POLL_HANDLER:
-	case EZSP_INCOMING_SENDER_EUI64_HANDLER:
-	case EZSP_INCOMING_MESSAGE_HANDLER:
 	case EZSP_INCOMING_ROUTE_RECORD_HANDLER:
 	case EZSP_INCOMING_MANY_TO_ONE_ROUTE_REQUEST_HANDLER:
-	case EZSP_INCOMING_ROUTE_ERROR_HANDLER:
 	case EZSP_ID_CONFLICT_HANDLER:
 	case EZSP_MAC_PASSTHROUGH_MESSAGE_HANDLER:
 	case EZSP_MAC_FILTER_MATCH_MESSAGE_HANDLER:
 	case EZSP_RAW_TRANSMIT_COMPLETE_HANDLER:
 	case EZSP_SWITCH_NETWORK_KEY_HANDLER:
 	case EZSP_ZIGBEE_KEY_ESTABLISHMENT_HANDLER:
-	case EZSP_TRUST_CENTER_JOIN_HANDLER:
 	case EZSP_GENERATE_CBKE_KEYS_HANDLER:
 	case EZSP_CALCULATE_SMACS_HANDLER:
 	case EZSP_GENERATE_CBKE_KEYS_HANDLER283K1:
@@ -56,5 +237,6 @@ func EzspCallbackDispatch(cb *EzspFrame) {
 	case EZSP_RF4CE_UNPAIR_HANDLER:
 	case EZSP_RF4CE_UNPAIR_COMPLETE_HANDLER:
 	default:
+		common.Log.Errorf("ezspCallbackDispatch unknown callback id 0x%x", cb.FrameID)
 	}
 }

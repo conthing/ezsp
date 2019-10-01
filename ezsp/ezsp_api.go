@@ -18,6 +18,83 @@ type EzspError struct {
 	OccurAt    string
 }
 
+type EmberNetworkParameters struct {
+	ExtendedPanId uint64
+	PanId         uint16
+	RadioTxPower  int8
+	RadioChannel  byte
+	JoinMethod    byte
+	NwkManagerId  uint16
+	NwkUpdateId   byte
+	Channels      uint32
+}
+
+/** @brief This describes the Initial Security features and requirements that
+ *  will be used when forming or joining the network.  */
+type EmberInitialSecurityState struct {
+	/** This bitmask enumerates which security features should be used, as well
+	as the presence of valid data within other elements of the
+	::EmberInitialSecurityState data structure.  For more details see the
+	::EmberInitialSecurityBitmask. */
+	bitmask uint16
+	/** This is the pre-configured key that can used by devices when joining the
+	 *  network if the Trust Center does not send the initial security data
+	 *  in-the-clear.
+	 *  For the Trust Center, it will be the global link key and <b>must</b> be set
+	 *  regardless of whether joining devices are expected to have a pre-configured
+	 *  Link Key.
+	 *  This parameter will only be used if the EmberInitialSecurityState::bitmask
+	 *  sets the bit indicating ::EMBER_HAVE_PRECONFIGURED_KEY*/
+	preconfiguredKey [16]byte
+	/** This is the Network Key used when initially forming the network.
+	 *  This must be set on the Trust Center.  It is not needed for devices
+	 *  joining the network.  This parameter will only be used if the
+	 *  EmberInitialSecurityState::bitmask sets the bit indicating
+	 *  ::EMBER_HAVE_NETWORK_KEY.  */
+	networkKey [16]byte
+	/** This is the sequence number associated with the network key.  It must
+	 *  be set if the Network Key is set.  It is used to indicate a particular
+	 *  of the network key for updating and switching.  This parameter will
+	 *  only be used if the ::EMBER_HAVE_NETWORK_KEY is set. Generally it should
+	 *  be set to 0 when forming the network; joining devices can ignore
+	 *  this value.  */
+	networkKeySequenceNumber byte
+	/** This is the long address of the trust center on the network that will
+	 *  be joined.  It is usually NOT set prior to joining the network and
+	 *  instead it is learned during the joining message exchange.  This field
+	 *  is only examined if ::EMBER_HAVE_TRUST_CENTER_EUI64 is set in the
+	 *  EmberInitialSecurityState::bitmask.  Most devices should clear that
+	 *  bit and leave this field alone.  This field must be set when using
+	 *  commissioning mode.  It is required to be in little-endian format. */
+	preconfiguredTrustCenterEui64 uint64
+}
+
+type EmberApsFrame struct {
+	/** The application profile ID that describes the format of the message. */
+	profileId uint16
+	/** The cluster ID for this message. */
+	clusterId uint16
+	/** The source endpoint. */
+	sourceEndpoint byte
+	/** The destination endpoint. */
+	destinationEndpoint byte
+	/** A bitmask of options from the enumeration above. */
+	options uint16
+	/** The group ID for this message, if it is multicast mode. */
+	groupId uint16
+	/** The sequence number. */
+	sequence byte
+}
+
+type EmberZigbeeNetwork struct {
+	Channel       byte
+	PanId         uint16
+	ExtendedPanId uint64
+	AllowingJoin  bool
+	StackProfile  byte
+	NwkUpdateId   byte
+}
+
 func (e EmberError) Error() string {
 	return fmt.Sprintf("%s get error emberStatus(%s)", e.OccurAt, emberStatusToString(e.EmberStatus))
 }
@@ -322,17 +399,6 @@ func EzspSetToken(tokenId byte, tokenData []byte) (err error) {
 	return
 }
 
-type EmberNetworkParameters struct {
-	ExtendedPanId uint64
-	PanId         uint16
-	RadioTxPower  int8
-	RadioChannel  byte
-	JoinMethod    byte
-	NwkManagerId  uint16
-	NwkUpdateId   byte
-	Channels      uint32
-}
-
 func EzspGetNetworkParameters() (nodeType byte, parameters *EmberNetworkParameters, err error) {
 	response, err := EzspFrameSend(EZSP_GET_NETWORK_PARAMETERS, []byte{})
 	if err == nil {
@@ -383,6 +449,84 @@ func EzspNetworkInit() (err error) {
 	return
 }
 
+func EzspFormNetwork(para *EmberNetworkParameters) (err error) {
+	data := make([]byte, 20)
+	binary.LittleEndian.PutUint64(data, para.ExtendedPanId)
+	binary.LittleEndian.PutUint16(data[8:], para.PanId)
+	data[10] = byte(para.RadioTxPower)
+	data[11] = para.RadioChannel
+	data[12] = para.JoinMethod
+	binary.LittleEndian.PutUint16(data[13:], para.NwkManagerId)
+	data[15] = para.NwkUpdateId
+	binary.LittleEndian.PutUint32(data[16:], para.Channels)
+
+	response, err := EzspFrameSend(EZSP_FORM_NETWORK, data)
+	if err == nil {
+		err = generalResponseError(response, EZSP_FORM_NETWORK)
+		if err == nil {
+			err = generalResponseLengthEqual(response, EZSP_FORM_NETWORK, 1)
+			if err == nil {
+				emberStatus := response.Data[0]
+				if emberStatus != EMBER_SUCCESS {
+					err = EmberError{emberStatus, "ezspFormNetwork()"}
+					return
+				}
+				ezspApiTrace("ezspFormNetwork()")
+			}
+		}
+	}
+	return
+}
+
+func EzspSetInitialSecurityState(state *EmberInitialSecurityState) (err error) {
+	data := make([]byte, 43)
+	binary.LittleEndian.PutUint16(data, state.bitmask)
+	for i, v := range state.preconfiguredKey {
+		data[2+i] = v
+	}
+	for i, v := range state.networkKey {
+		data[18+i] = v
+	}
+	data[34] = state.networkKeySequenceNumber
+	binary.LittleEndian.PutUint64(data[35:], state.preconfiguredTrustCenterEui64)
+
+	response, err := EzspFrameSend(EZSP_SET_INITIAL_SECURITY_STATE, data)
+	if err == nil {
+		err = generalResponseError(response, EZSP_SET_INITIAL_SECURITY_STATE)
+		if err == nil {
+			err = generalResponseLengthEqual(response, EZSP_SET_INITIAL_SECURITY_STATE, 1)
+			if err == nil {
+				emberStatus := response.Data[0]
+				if emberStatus != EMBER_SUCCESS {
+					err = EmberError{emberStatus, "EzspSetInitialSecurityState()"}
+					return
+				}
+				ezspApiTrace("EzspSetInitialSecurityState()")
+			}
+		}
+	}
+	return
+}
+
+func EzspStartScan(scanType byte, channelMask uint32, duration byte) (err error) {
+	response, err := EzspFrameSend(EZSP_START_SCAN, []byte{scanType, byte(channelMask), byte(channelMask >> 8), byte(channelMask >> 16), byte(channelMask >> 24), duration})
+	if err == nil {
+		err = generalResponseError(response, EZSP_START_SCAN)
+		if err == nil {
+			err = generalResponseLengthEqual(response, EZSP_START_SCAN, 1)
+			if err == nil {
+				emberStatus := response.Data[0]
+				if emberStatus != EMBER_SUCCESS {
+					err = EmberError{emberStatus, "EzspStartScan()"}
+					return
+				}
+				ezspApiTrace("EzspStartScan()")
+			}
+		}
+	}
+	return
+}
+
 // EzspGetValue API
 
 type EmberVersion struct {
@@ -423,6 +567,10 @@ func EzspSetValue_MAXIMUM_OUTGOING_TRANSFER_SIZE(size uint16) (err error) {
 	return EzspSetValue(EZSP_VALUE_MAXIMUM_OUTGOING_TRANSFER_SIZE, []byte{byte(size), byte(size >> 8)})
 }
 
+func EzspSetValue_EXTENDED_SECURITY_BITMASK(mask uint16) (err error) {
+	return EzspSetValue(EZSP_VALUE_EXTENDED_SECURITY_BITMASK, []byte{byte(mask), byte(mask >> 8)})
+}
+
 func EzspSetMfgToken_MFG_PHY_CONFIG(phyConfig uint16) (err error) {
 	return EzspSetMfgToken(EZSP_MFG_PHY_CONFIG, []byte{byte(phyConfig), byte(phyConfig >> 8)})
 }
@@ -441,7 +589,7 @@ func EzspGetMfgToken_MFG_PHY_CONFIG() (phyConfig uint16, err error) {
 func EzspCallback() (err error) {
 	response, err := EzspFrameSend(EZSP_CALLBACK, []byte{})
 	if err == nil {
-		if response == nil { //正常应该返回nil，真正的callback从EzspCallbackDispatch处理
+		if response == nil { //正常应该返回nil，真正的callback从ezspCallbackDispatch处理
 			return nil
 		}
 		if response.FrameID == EZSP_INVALID_COMMAND {
