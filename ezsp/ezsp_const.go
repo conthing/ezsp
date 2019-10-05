@@ -1775,6 +1775,21 @@ const (
 	EZSP_PROTOCOL_VERSION = byte(0x04)
 	EZSP_STACK_TYPE_MESH  = byte(0x02)
 
+	EMBER_NULL_NODE_ID = uint16(0xffff)
+
+	/**
+	 * Ember Concentrator Types
+	 */
+	/** A concentrator with insufficient memory to store source routes for
+	 * the entire network. Route records are sent to the concentrator prior
+	 * to every inbound APS unicast. */
+	EMBER_LOW_RAM_CONCENTRATOR = uint16(0xFFF8)
+	/** A concentrator with sufficient memory to store source routes for
+	 * the entire network. Remote nodes stop sending route records once
+	 * the concentrator has successfully received one.
+	 */
+	EMBER_HIGH_RAM_CONCENTRATOR = uint16(0xFFF9)
+
 	/**
 	 * @brief Bitmask to scan recommended 802.15.4 channels.
 	 */

@@ -527,6 +527,47 @@ func EzspStartScan(scanType byte, channelMask uint32, duration byte) (err error)
 	return
 }
 
+func EzspLookupNodeIdByEui64(eui64 uint64) (nodeId uint16, err error) {
+	data := make([]byte, 8)
+	binary.LittleEndian.PutUint64(data, eui64)
+
+	response, err := EzspFrameSend(EZSP_LOOKUP_NODE_ID_BY_EUI64, data)
+	if err == nil {
+		err = generalResponseError(response, EZSP_LOOKUP_NODE_ID_BY_EUI64)
+		if err == nil {
+			err = generalResponseLengthEqual(response, EZSP_LOOKUP_NODE_ID_BY_EUI64, 2)
+			if err == nil {
+				nodeId = binary.LittleEndian.Uint16(response.Data)
+				if nodeId == EMBER_NULL_NODE_ID {
+					err = fmt.Errorf("EzspLookupNodeIdByEui64(%016x) invalid", eui64)
+					return
+				}
+				ezspApiTrace("EzspLookupNodeIdByEui64(%016x) = 0x%04x", eui64, nodeId)
+			}
+		}
+	}
+	return
+}
+
+func EzspSendManyToOneRouteRequest(concentratorType uint16, radius byte) {
+	response, err := EzspFrameSend(EZSP_SEND_MANY_TO_ONE_ROUTE_REQUEST, []byte{byte(concentratorType), byte(concentratorType >> 8), radius})
+	if err == nil {
+		err = generalResponseError(response, EZSP_SEND_MANY_TO_ONE_ROUTE_REQUEST)
+		if err == nil {
+			err = generalResponseLengthEqual(response, EZSP_SEND_MANY_TO_ONE_ROUTE_REQUEST, 1)
+			if err == nil {
+				emberStatus := response.Data[0]
+				if emberStatus != EMBER_SUCCESS {
+					err = EmberError{emberStatus, "EzspSendManyToOneRouteRequest()"}
+					return
+				}
+				ezspApiTrace("EzspSendManyToOneRouteRequest()")
+			}
+		}
+	}
+	return
+}
+
 // EzspGetValue API
 
 type EmberVersion struct {
