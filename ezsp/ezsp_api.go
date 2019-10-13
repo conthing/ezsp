@@ -568,6 +568,44 @@ func EzspSendManyToOneRouteRequest(concentratorType uint16, radius byte) {
 	return
 }
 
+func EzspSendUnicast(outgoingMessageType byte, indexOrDestination uint16, apsFrame *EmberApsFrame, messageTag byte, message []byte) (sequence byte, err error) {
+	data := []byte{
+		outgoingMessageType,
+		byte(indexOrDestination),
+		byte(indexOrDestination >> 8),
+		byte(apsFrame.profileId),
+		byte(apsFrame.profileId >> 8),
+		byte(apsFrame.clusterId),
+		byte(apsFrame.clusterId >> 8),
+		apsFrame.sourceEndpoint,
+		apsFrame.destinationEndpoint,
+		byte(apsFrame.options),
+		byte(apsFrame.options >> 8),
+		byte(apsFrame.groupId),
+		byte(apsFrame.groupId >> 8),
+		apsFrame.sequence,
+		messageTag,
+		byte(len(message))}
+	data = append(data, message...)
+	response, err := EzspFrameSend(EZSP_SEND_UNICAST, data)
+	if err == nil {
+		err = generalResponseError(response, EZSP_SEND_UNICAST)
+		if err == nil {
+			err = generalResponseLengthEqual(response, EZSP_SEND_UNICAST, 2)
+			if err == nil {
+				emberStatus := response.Data[0]
+				sequence = response.Data[1]
+				if emberStatus != EMBER_SUCCESS {
+					err = EmberError{emberStatus, "EzspSendUnicast()"}
+					return
+				}
+				ezspApiTrace("EzspSendUnicast() return seq=%d", sequence)
+			}
+		}
+	}
+	return
+}
+
 // EzspGetValue API
 
 type EmberVersion struct {
@@ -640,3 +678,4 @@ func EzspCallback() (err error) {
 	}
 	return
 }
+

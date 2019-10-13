@@ -8,6 +8,18 @@ import (
 	"github.com/conthing/utils/common"
 )
 
+type StNetworker struct {
+	//EzspStackStatusHandler(emberStatus byte)
+	NcpMessageSentHandler         func(outgoingMessageType byte, indexOrDestination uint16, apsFrame *EmberApsFrame, messageTag byte, emberStatus byte, message []byte)
+	NcpIncomingSenderEui64Handler func(senderEui64 uint64)
+	NcpIncomingMessageHandler     func(incomingMessageType byte, apsFrame *EmberApsFrame, lastHopLqi byte, lastHopRssi int8, sender uint16, bindingIndex byte, addressIndex byte, message []byte)
+	//EzspIncomingRouteErrorHandler(emberStatus byte, target uint16)
+	//EzspTrustCenterJoinHandler(newNodeId uint16, newNodeEui64 uint64, deviceUpdateStatus byte, joinDecision byte, parentOfNewNode uint16)
+	//EzspEnergyScanResultHandler(channel byte, maxRssiValue int8)
+	//EzspScanCompleteHandler(channel byte, emberStatus byte)
+	//EzspNetworkFoundHandler(networkFound *EmberZigbeeNetwork, lqi byte, rssi int8)
+}
+
 // StModuleInfo
 type StModuleInfo struct {
 	ModuleType      string `json:"moduletype"`
@@ -26,6 +38,7 @@ type StMeshInfo struct {
 var ModuleInfo = StModuleInfo{ModuleType: "EM357"}
 var MeshInfo StMeshInfo
 var MeshStatusUp bool
+var Networker StNetworker
 
 func NcpGetVersion() (err error) {
 	var stackVersion uint16
@@ -219,7 +232,7 @@ func EzspMessageSentHandler(outgoingMessageType byte,
 	messageTag byte,
 	emberStatus byte,
 	message []byte) {
-	NcpMessageSentHandler(outgoingMessageType,
+	Networker.NcpMessageSentHandler(outgoingMessageType,
 		indexOrDestination,
 		apsFrame,
 		messageTag,
@@ -229,7 +242,7 @@ func EzspMessageSentHandler(outgoingMessageType byte,
 
 //todo source route table 没处理
 func EzspIncomingSenderEui64Handler(senderEui64 uint64) {
-	NcpIncomingSenderEui64Handler(senderEui64)
+	Networker.NcpIncomingSenderEui64Handler(senderEui64)
 }
 
 func EzspIncomingMessageHandler(incomingMessageType byte,
@@ -242,7 +255,7 @@ func EzspIncomingMessageHandler(incomingMessageType byte,
 	message []byte) {
 	//todo 节点表中创建节点，超时计数重置
 
-	NcpIncomingMessageHandler(incomingMessageType,
+	Networker.NcpIncomingMessageHandler(incomingMessageType,
 		apsFrame,
 		lastHopLqi,
 		lastHopRssi,
@@ -293,3 +306,4 @@ func ncpSendMTORR() {
 		EzspSendManyToOneRouteRequest(EMBER_HIGH_RAM_CONCENTRATOR, 0)
 	}
 }
+

@@ -1,8 +1,8 @@
 package zgb
-
 import (
 	"github.com/conthing/ezsp/ash"
 	"github.com/conthing/ezsp/ezsp"
+	"github.com/conthing/ezsp/c4"
 	"github.com/conthing/utils/common"
 )
 
@@ -51,10 +51,13 @@ func TickRunning(_ chan error) {
 	}
 	common.Log.Infof("NcpFormNetwork OK")
 
+	c4.C4Init()
+
 	for {
-		ezsp.EzspTick(nil)
+		ezsp.EzspTick()
 	}
 }
 
 //func getModuleInfo() (*models.StModuleInfo, error) {
 //}
+

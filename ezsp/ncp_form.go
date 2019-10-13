@@ -111,10 +111,10 @@ func ncpStartScan(channelMask uint32) (err error) {
 	return
 }
 
-func EzspEnergyScanResultHandler(channel byte, maxRssiValue byte) {
+func EzspEnergyScanResultHandler(channel byte, maxRssiValue int8) {
 	if isScanning() {
 		common.Log.Debug("SCAN: found energy ", maxRssiValue, " dBm on channel ", channel)
-		channelEnergies[channel-EMBER_MIN_802_15_4_CHANNEL_NUMBER] = maxRssiValue
+		channelEnergies[channel-EMBER_MIN_802_15_4_CHANNEL_NUMBER] = byte(maxRssiValue) //todo 这里应该用有符号
 	}
 }
 

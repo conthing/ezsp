@@ -6,42 +6,14 @@ import (
 	"github.com/conthing/utils/common"
 )
 
-type Networker interface {
-	EzspStackStatusHandler(emberStatus byte)
-	EzspMessageSentHandler(outgoingMessageType byte,
-		indexOrDestination uint16,
-		apsFrame *EmberApsFrame,
-		messageTag byte,
-		emberStatus byte,
-		message []byte)
-	EzspIncomingSenderEui64Handler(senderEui64 uint64)
-	EzspIncomingMessageHandler(incomingMessageType byte,
-		apsFrame *EmberApsFrame,
-		lastHopLqi byte,
-		lastHopRssi int8,
-		sender uint16,
-		bindingIndex byte,
-		addressIndex byte,
-		message []byte)
-	EzspIncomingRouteErrorHandler(emberStatus byte, target uint16)
-	EzspTrustCenterJoinHandler(newNodeId uint16,
-		newNodeEui64 uint64,
-		deviceUpdateStatus byte,
-		joinDecision byte,
-		parentOfNewNode uint16)
-	EzspEnergyScanResultHandler(channel byte, maxRssiValue int8)
-	EzspScanCompleteHandler(channel byte, emberStatus byte)
-	EzspNetworkFoundHandler(networkFound *EmberZigbeeNetwork, lqi byte, rssi int8)
-}
-
-func EzspTick(networker Networker) {
+func EzspTick() {
 	select {
 	case cb := <-callbackCh:
-		ezspCallbackDispatch(networker, cb)
+		ezspCallbackDispatch(cb)
 	}
 }
 
-func ezspCallbackDispatch(networker Networker, cb *EzspFrame) {
+func ezspCallbackDispatch(cb *EzspFrame) {
 
 	if cb == nil {
 		common.Log.Errorf("ezspCallbackDispatch with nil frame")
@@ -53,10 +25,7 @@ func ezspCallbackDispatch(networker Networker, cb *EzspFrame) {
 	}
 
 	common.Log.Debugf("callback:%s", frameIDToName(cb.FrameID))
-	if networker == nil {
-		common.Log.Errorf("ezspCallbackDispatch with nil networker")
-		return
-	}
+
 	switch cb.FrameID {
 	case EZSP_INCOMING_MESSAGE_HANDLER:
 		if len(cb.Data) < 17 {
@@ -84,7 +53,7 @@ func ezspCallbackDispatch(networker Networker, cb *EzspFrame) {
 			return
 		}
 
-		networker.EzspIncomingMessageHandler(incomingMessageType,
+		EzspIncomingMessageHandler(incomingMessageType,
 			&apsFrame,
 			lastHopLqi,
 			lastHopRssi,
@@ -99,7 +68,7 @@ func ezspCallbackDispatch(networker Networker, cb *EzspFrame) {
 			return
 		}
 		emberStatus := cb.Data[0]
-		networker.EzspStackStatusHandler(emberStatus)
+		EzspStackStatusHandler(emberStatus)
 
 	case EZSP_INCOMING_SENDER_EUI64_HANDLER:
 		if len(cb.Data) != 8 {
@@ -107,7 +76,7 @@ func ezspCallbackDispatch(networker Networker, cb *EzspFrame) {
 			return
 		}
 		senderEui64 := binary.LittleEndian.Uint64(cb.Data)
-		networker.EzspIncomingSenderEui64Handler(senderEui64)
+		EzspIncomingSenderEui64Handler(senderEui64)
 
 	case EZSP_MESSAGE_SENT_HANDLER:
 		if len(cb.Data) < 17 {
@@ -132,7 +101,7 @@ func ezspCallbackDispatch(networker Networker, cb *EzspFrame) {
 			return
 		}
 
-		networker.EzspMessageSentHandler(outgoingMessageType,
+		EzspMessageSentHandler(outgoingMessageType,
 			indexOrDestination,
 			&apsFrame,
 			messageTag,
@@ -146,7 +115,7 @@ func ezspCallbackDispatch(networker Networker, cb *EzspFrame) {
 		}
 		emberStatus := cb.Data[0]
 		target := binary.LittleEndian.Uint16(cb.Data[1:])
-		networker.EzspIncomingRouteErrorHandler(emberStatus, target)
+		EzspIncomingRouteErrorHandler(emberStatus, target)
 
 	case EZSP_TRUST_CENTER_JOIN_HANDLER:
 		if len(cb.Data) != 14 {
@@ -158,7 +127,7 @@ func ezspCallbackDispatch(networker Networker, cb *EzspFrame) {
 		deviceUpdateStatus := cb.Data[10]
 		joinDecision := cb.Data[11]
 		parentOfNewNode := binary.LittleEndian.Uint16(cb.Data[12:])
-		networker.EzspTrustCenterJoinHandler(newNodeId,
+		EzspTrustCenterJoinHandler(newNodeId,
 			newNodeEui64,
 			deviceUpdateStatus,
 			joinDecision,
@@ -176,7 +145,7 @@ func ezspCallbackDispatch(networker Networker, cb *EzspFrame) {
 		}
 		channel := cb.Data[0]
 		maxRssiValue := int8(cb.Data[1])
-		networker.EzspEnergyScanResultHandler(channel, maxRssiValue)
+		EzspEnergyScanResultHandler(channel, maxRssiValue)
 	case EZSP_NETWORK_FOUND_HANDLER:
 		if len(cb.Data) != 16 {
 			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length", frameIDToName(cb.FrameID), len(cb.Data))
@@ -191,7 +160,7 @@ func ezspCallbackDispatch(networker Networker, cb *EzspFrame) {
 		networkFound.NwkUpdateId = cb.Data[13]
 		lqi := cb.Data[14]
 		rssi := int8(cb.Data[15])
-		networker.EzspNetworkFoundHandler(&networkFound, lqi, rssi)
+		EzspNetworkFoundHandler(&networkFound, lqi, rssi)
 	case EZSP_SCAN_COMPLETE_HANDLER:
 		if len(cb.Data) != 2 {
 			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length", frameIDToName(cb.FrameID), len(cb.Data))
@@ -199,7 +168,7 @@ func ezspCallbackDispatch(networker Networker, cb *EzspFrame) {
 		}
 		channel := cb.Data[0]
 		emberStatus := cb.Data[1]
-		networker.EzspScanCompleteHandler(channel, emberStatus)
+		EzspScanCompleteHandler(channel, emberStatus)
 	case EZSP_CHILD_JOIN_HANDLER:
 	case EZSP_REMOTE_SET_BINDING_HANDLER:
 	case EZSP_REMOTE_DELETE_BINDING_HANDLER:
@@ -240,3 +209,4 @@ func ezspCallbackDispatch(networker Networker, cb *EzspFrame) {
 		common.Log.Errorf("ezspCallbackDispatch unknown callback id 0x%x", cb.FrameID)
 	}
 }
+
