@@ -106,7 +106,7 @@ func NcpConfig() (err error) {
 		if value != cfg.value {
 			return fmt.Errorf("%s read back %d != %d", name, value, cfg.value)
 		}
-		common.Log.Infof("%s = %d write success", name, cfg.value)
+		common.Log.Infof("Set %s = %d", name, cfg.value)
 	}
 
 	err = EzspSetPolicy(EZSP_MESSAGE_CONTENTS_IN_CALLBACK_POLICY, EZSP_MESSAGE_TAG_AND_CONTENTS_IN_CALLBACK)
@@ -306,4 +306,3 @@ func ncpSendMTORR() {
 		EzspSendManyToOneRouteRequest(EMBER_HIGH_RAM_CONCENTRATOR, 0)
 	}
 }
-

@@ -5,8 +5,6 @@ package ezsp
 import (
 	"encoding/binary"
 	"fmt"
-
-	"github.com/conthing/utils/common"
 )
 
 type EmberError struct {
@@ -71,13 +69,13 @@ type EmberInitialSecurityState struct {
 
 type EmberApsFrame struct {
 	/** The application profile ID that describes the format of the message. */
-	profileId uint16
+	ProfileId uint16
 	/** The cluster ID for this message. */
-	clusterId uint16
+	ClusterId uint16
 	/** The source endpoint. */
-	sourceEndpoint byte
+	SourceEndpoint byte
 	/** The destination endpoint. */
-	destinationEndpoint byte
+	DestinationEndpoint byte
 	/** A bitmask of options from the enumeration above. */
 	options uint16
 	/** The group ID for this message, if it is multicast mode. */
@@ -104,7 +102,7 @@ func (e EzspError) Error() string {
 }
 
 func ezspApiTrace(format string, v ...interface{}) {
-	common.Log.Debugf(format, v...)
+	//common.Log.Debugf(format, v...)
 }
 
 func generalResponseError(response *EzspFrame, cmdID byte) error {
@@ -527,6 +525,26 @@ func EzspStartScan(scanType byte, channelMask uint32, duration byte) (err error)
 	return
 }
 
+func EzspLookupEui64ByNodeId(nodeId uint16) (eui64 uint64, err error) {
+	response, err := EzspFrameSend(EZSP_LOOKUP_EUI64_BY_NODE_ID, []byte{byte(nodeId), byte(nodeId >> 8)})
+	if err == nil {
+		err = generalResponseError(response, EZSP_LOOKUP_EUI64_BY_NODE_ID)
+		if err == nil {
+			err = generalResponseLengthEqual(response, EZSP_LOOKUP_EUI64_BY_NODE_ID, 9)
+			if err == nil {
+				emberStatus := response.Data[0]
+				eui64 = binary.LittleEndian.Uint64(response.Data[1:])
+				if emberStatus != EMBER_SUCCESS {
+					err = EmberError{emberStatus, fmt.Sprintf("EzspLookupEui64ByNodeId(%04x) invalid", nodeId)}
+					return
+				}
+				ezspApiTrace("EzspLookupEui64ByNodeId(%04x) = 0x%016x", nodeId, eui64)
+			}
+		}
+	}
+	return
+}
+
 func EzspLookupNodeIdByEui64(eui64 uint64) (nodeId uint16, err error) {
 	data := make([]byte, 8)
 	binary.LittleEndian.PutUint64(data, eui64)
@@ -573,12 +591,12 @@ func EzspSendUnicast(outgoingMessageType byte, indexOrDestination uint16, apsFra
 		outgoingMessageType,
 		byte(indexOrDestination),
 		byte(indexOrDestination >> 8),
-		byte(apsFrame.profileId),
-		byte(apsFrame.profileId >> 8),
-		byte(apsFrame.clusterId),
-		byte(apsFrame.clusterId >> 8),
-		apsFrame.sourceEndpoint,
-		apsFrame.destinationEndpoint,
+		byte(apsFrame.ProfileId),
+		byte(apsFrame.ProfileId >> 8),
+		byte(apsFrame.ClusterId),
+		byte(apsFrame.ClusterId >> 8),
+		apsFrame.SourceEndpoint,
+		apsFrame.DestinationEndpoint,
 		byte(apsFrame.options),
 		byte(apsFrame.options >> 8),
 		byte(apsFrame.groupId),
@@ -678,4 +696,3 @@ func EzspCallback() (err error) {
 	}
 	return
 }
-

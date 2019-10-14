@@ -1,8 +1,9 @@
 package zgb
+
 import (
 	"github.com/conthing/ezsp/ash"
-	"github.com/conthing/ezsp/ezsp"
 	"github.com/conthing/ezsp/c4"
+	"github.com/conthing/ezsp/ezsp"
 	"github.com/conthing/utils/common"
 )
 
@@ -23,35 +24,41 @@ func TickRunning(_ chan error) {
 		common.Log.Errorf("NcpGetVersion failed: %v", err)
 	}
 
-	common.Log.Infof("module info : %+v", ezsp.ModuleInfo)
+	common.Log.Infof("NCP module info : %+v", ezsp.ModuleInfo)
 
 	err = ezsp.NcpConfig()
 	if err != nil {
 		common.Log.Errorf("NcpConfig failed: %v", err)
 	}
 
+	common.Log.Infof("Print All Configurations...")
 	ezsp.NcpPrintAllConfigurations()
-	common.Log.Infof("NcpPrintAllConfigurations OK")
 
 	rebootCnt, err := ezsp.NcpGetAndIncRebootCnt()
 	if err != nil {
 		common.Log.Errorf("NcpGetAndIncRebootCnt failed: %v", err)
 	}
-	common.Log.Infof("NCP reboot %d", rebootCnt)
+	common.Log.Infof("NCP reboot count = %d", rebootCnt)
 
 	eui64, err := ezsp.EzspGetEUI64()
 	if err != nil {
 		common.Log.Errorf("EzspGetEUI64 failed: %v", err)
 	}
-	common.Log.Infof("EUI64 = %016x", eui64)
-
-	err = ezsp.NcpFormNetwork(0xff)
-	if err != nil {
-		common.Log.Errorf("NcpFormNetwork failed: %v", err)
-	}
-	common.Log.Infof("NcpFormNetwork OK")
+	common.Log.Infof("NCP EUI64 = %016x", eui64)
 
 	c4.C4Init()
+
+	//err = ezsp.NcpFormNetwork(0xff)
+	//if err != nil {
+	//	common.Log.Errorf("NcpFormNetwork failed: %v", err)
+	//}
+	//common.Log.Infof("NcpFormNetwork OK")
+
+	err = ezsp.EzspNetworkInit()
+	if err != nil {
+		common.Log.Errorf("EzspNetworkInit failed: %v", err)
+	}
+	common.Log.Infof("EzspNetworkInit OK")
 
 	for {
 		ezsp.EzspTick()
@@ -60,4 +67,3 @@ func TickRunning(_ chan error) {
 
 //func getModuleInfo() (*models.StModuleInfo, error) {
 //}
-

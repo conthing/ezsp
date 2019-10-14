@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/conthing/ezsp/ash"
-	"github.com/conthing/utils/common"
 )
 
 type EzspFrame struct {
@@ -26,7 +25,7 @@ var callbackCh = make(chan *EzspFrame, 1)
 var responseChMap [256]chan *EzspFrame
 
 func ezspFrameTrace(format string, v ...interface{}) {
-	common.Log.Debugf(format, v...)
+	//common.Log.Debugf(format, v...)
 }
 
 func (ezspFrame EzspFrame) String() (s string) {

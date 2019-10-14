@@ -35,10 +35,10 @@ func ezspCallbackDispatch(cb *EzspFrame) {
 
 		incomingMessageType := cb.Data[0]
 		apsFrame := EmberApsFrame{}
-		apsFrame.profileId = binary.LittleEndian.Uint16(cb.Data[1:])
-		apsFrame.clusterId = binary.LittleEndian.Uint16(cb.Data[3:])
-		apsFrame.sourceEndpoint = cb.Data[5]
-		apsFrame.destinationEndpoint = cb.Data[6]
+		apsFrame.ProfileId = binary.LittleEndian.Uint16(cb.Data[1:])
+		apsFrame.ClusterId = binary.LittleEndian.Uint16(cb.Data[3:])
+		apsFrame.SourceEndpoint = cb.Data[5]
+		apsFrame.DestinationEndpoint = cb.Data[6]
 		apsFrame.options = binary.LittleEndian.Uint16(cb.Data[7:])
 		apsFrame.groupId = binary.LittleEndian.Uint16(cb.Data[9:])
 		apsFrame.sequence = cb.Data[11]
@@ -86,10 +86,10 @@ func ezspCallbackDispatch(cb *EzspFrame) {
 		outgoingMessageType := cb.Data[0]
 		indexOrDestination := binary.LittleEndian.Uint16(cb.Data[1:])
 		apsFrame := EmberApsFrame{}
-		apsFrame.profileId = binary.LittleEndian.Uint16(cb.Data[3:])
-		apsFrame.clusterId = binary.LittleEndian.Uint16(cb.Data[5:])
-		apsFrame.sourceEndpoint = cb.Data[7]
-		apsFrame.destinationEndpoint = cb.Data[8]
+		apsFrame.ProfileId = binary.LittleEndian.Uint16(cb.Data[3:])
+		apsFrame.ClusterId = binary.LittleEndian.Uint16(cb.Data[5:])
+		apsFrame.SourceEndpoint = cb.Data[7]
+		apsFrame.DestinationEndpoint = cb.Data[8]
 		apsFrame.options = binary.LittleEndian.Uint16(cb.Data[9:])
 		apsFrame.groupId = binary.LittleEndian.Uint16(cb.Data[11:])
 		apsFrame.sequence = cb.Data[13]
@@ -209,4 +209,3 @@ func ezspCallbackDispatch(cb *EzspFrame) {
 		common.Log.Errorf("ezspCallbackDispatch unknown callback id 0x%x", cb.FrameID)
 	}
 }
-

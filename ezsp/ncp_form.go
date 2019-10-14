@@ -10,6 +10,10 @@ import (
 	"github.com/conthing/utils/common"
 )
 
+func ncpFormTrace(format string, v ...interface{}) {
+	common.Log.Debugf(format, v...)
+}
+
 // NcpFormNetwork radioChannel=0xff时自动根据能量扫描选择channel
 func NcpFormNetwork(radioChannel byte) (err error) {
 	var channelMask uint32
@@ -24,6 +28,7 @@ func NcpFormNetwork(radioChannel byte) (err error) {
 	if err != nil {
 		return
 	}
+	ncpFormTrace("TrustCenterInit OK ... Start Energy Scan")
 	return ncpStartScan(channelMask)
 }
 
@@ -107,21 +112,20 @@ func ncpStartScan(channelMask uint32) (err error) {
 	for i := range channelEnergies {
 		channelEnergies[i] = byte(0xff)
 	}
-	err = startScan(FORM_AND_JOIN_ENERGY_SCAN, channelMask, ENERGY_SCAN_DURATION)
+	err = startScan(EZSP_ENERGY_SCAN, channelMask, ENERGY_SCAN_DURATION)
 	return
 }
 
 func EzspEnergyScanResultHandler(channel byte, maxRssiValue int8) {
+	ncpFormTrace("EzspEnergyScanResultHandler found energy %d dBm on channel %d", maxRssiValue, channel)
 	if isScanning() {
-		common.Log.Debug("SCAN: found energy ", maxRssiValue, " dBm on channel ", channel)
 		channelEnergies[channel-EMBER_MIN_802_15_4_CHANNEL_NUMBER] = byte(maxRssiValue) //todo 这里应该用有符号
 	}
 }
 
 func EzspScanCompleteHandler(channel byte, emberStatus byte) {
-	common.Log.Debug("ezspScanCompleteHandler channel ", channel, ", status ", emberStatus, ", formAndJoinScanType ", formAndJoinScanType)
 	if !isScanning() {
-		common.Log.Error("not in scaning")
+		common.Log.Error("unexpected EzspScanCompleteHandler, not in scaning")
 		return
 	}
 
@@ -134,23 +138,25 @@ func EzspScanCompleteHandler(channel byte, emberStatus byte) {
 			// If necessary we could save this failing channel number and start
 			// another Active Scan on this channel later (after this current scan is
 			// complete).
-			common.Log.Error("ezspScanCompleteHandler status error")
+			common.Log.Error("EZSP_ACTIVE_SCAN failed on ch %d: %s", channel, emberStatusToString(emberStatus))
 			return
 		}
 	}
 
 	switch formAndJoinScanType {
 	case FORM_AND_JOIN_ENERGY_SCAN:
+		ncpFormTrace("Energy Scan CompleteHandler")
 		energyScanComplete()
 	case FORM_AND_JOIN_PAN_ID_SCAN:
+		ncpFormTrace("PANID Scan CompleteHandler")
 		panIdScanComplete()
 	default:
-		common.Log.Error("unknown scan completed ", formAndJoinScanType)
+		common.Log.Errorf("unexpected EzspScanCompleteHandler formAndJoinScanType=%d", formAndJoinScanType)
 	}
 }
 
 func EzspNetworkFoundHandler(networkFound *EmberZigbeeNetwork, lqi byte, rssi int8) {
-	common.Log.Debug("SCAN: found ", networkFound, ", lqi ", lqi, ", rssi: ", rssi)
+	ncpFormTrace("SCAN: found %+v, lqi %d, rssi: %d", networkFound, lqi, rssi)
 
 	switch formAndJoinScanType {
 
@@ -210,6 +216,7 @@ func energyScanComplete() {
 
 	// 在这些candidate中随机取第channelIndex个
 	channelIndex = byte(rand.Uint32()) % candidateCount
+	ncpFormTrace("cutoff=%d rand select %d", cutoff, channelIndex)
 
 	for i = 0; i < EMBER_NUM_802_15_4_CHANNELS; i++ {
 		if channelEnergies[i] < cutoff {
@@ -221,7 +228,7 @@ func energyScanComplete() {
 		}
 	}
 
-	common.Log.Debug("select channel ", channelCache, ", start PANID scan")
+	ncpFormTrace("select channel %d, Start PANID Scan", channelCache)
 	startPanIdScan()
 }
 
@@ -277,9 +284,9 @@ func unusedPanIdFoundHandler(panId uint16, channel byte) {
 	networkParams.PanId = panId
 	networkParams.RadioTxPower = -1
 
-	common.Log.Debug("unusedPanIdFoundHandler")
 	err := EzspFormNetwork(&networkParams)
 	if err != nil {
 		common.Log.Errorf("ezsp form error: %v", err)
 	}
+	common.Log.Infof("network formed: PANID 0x%04x, ch %d", panId, channel)
 }

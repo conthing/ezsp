@@ -27,10 +27,12 @@ var cfg = stConfig{}
 
 func boot(_ interface{}) (needRetry bool, err error) {
 	var cfgfile string
+	var action string
 
 	//解析命令行参数 -c <cfgfile> 默认configuration.toml
 	flag.StringVar(&cfgfile, "config", "configuration.toml", "Specify a config file other than default.")
 	flag.StringVar(&cfgfile, "c", "configuration.toml", "Specify a config file other than default.")
+	flag.StringVar(&action, "act", "", "Specify a init action form/remove for form or remove network")
 	flag.Parse()
 
 	common.InitLogger(&common.LoggerConfig{Level: "DEBUG", SkipCaller: true})
