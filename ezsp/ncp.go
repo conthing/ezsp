@@ -8,12 +8,17 @@ import (
 	"github.com/conthing/utils/common"
 )
 
+func ncpTrace(format string, v ...interface{}) {
+	common.Log.Debugf(format, v...)
+}
+
 type StNetworker struct {
 	//EzspStackStatusHandler(emberStatus byte)
-	NcpMessageSentHandler         func(outgoingMessageType byte, indexOrDestination uint16, apsFrame *EmberApsFrame, messageTag byte, emberStatus byte, message []byte)
-	NcpIncomingSenderEui64Handler func(senderEui64 uint64)
-	NcpIncomingMessageHandler     func(incomingMessageType byte, apsFrame *EmberApsFrame, lastHopLqi byte, lastHopRssi int8, sender uint16, bindingIndex byte, addressIndex byte, message []byte)
+	NcpMessageSentHandler func(outgoingMessageType byte, indexOrDestination uint16, apsFrame *EmberApsFrame, messageTag byte, emberStatus byte, message []byte)
+	//NcpIncomingSenderEui64Handler func(senderEui64 uint64)
+	NcpIncomingMessageHandler func(incomingMessageType byte, apsFrame *EmberApsFrame, lastHopLqi byte, lastHopRssi int8, sender uint16, bindingIndex byte, addressIndex byte, message []byte)
 	//EzspIncomingRouteErrorHandler(emberStatus byte, target uint16)
+	//EzspIncomingRouteRecordHandler(source uint16, sourceEui uint64, lastHopLqi byte, lastHopRssi int8, relay []uint16)
 	//EzspTrustCenterJoinHandler(newNodeId uint16, newNodeEui64 uint64, deviceUpdateStatus byte, joinDecision byte, parentOfNewNode uint16)
 	//EzspEnergyScanResultHandler(channel byte, maxRssiValue int8)
 	//EzspScanCompleteHandler(channel byte, emberStatus byte)
@@ -57,7 +62,7 @@ func NcpGetVersion() (err error) {
 
 	//common.Log.Infof("%v", stackVersion)
 
-	common.Log.Infof("NcpGetVersion: protocolVersion(%d) stackType(%d) stackVersion(%s)", ModuleInfo.ProtocolVersion, ModuleInfo.StackType, ModuleInfo.StackVersion)
+	ncpTrace("NcpGetVersion: protocolVersion(%d) stackType(%d) stackVersion(%s)", ModuleInfo.ProtocolVersion, ModuleInfo.StackType, ModuleInfo.StackVersion)
 	return nil
 }
 
@@ -69,7 +74,7 @@ func NcpPrintAllConfigurations() {
 			if err != nil {
 				common.Log.Errorf("%s read failed: %v", name, err)
 			}
-			common.Log.Infof("%s = %d", name, value)
+			ncpTrace("%s = %d", name, value)
 		}
 	}
 }
@@ -106,32 +111,32 @@ func NcpConfig() (err error) {
 		if value != cfg.value {
 			return fmt.Errorf("%s read back %d != %d", name, value, cfg.value)
 		}
-		common.Log.Infof("Set %s = %d", name, cfg.value)
+		ncpTrace("Set %s = %d", name, cfg.value)
 	}
 
 	err = EzspSetPolicy(EZSP_MESSAGE_CONTENTS_IN_CALLBACK_POLICY, EZSP_MESSAGE_TAG_AND_CONTENTS_IN_CALLBACK)
 	if err != nil {
 		return fmt.Errorf("EzspSetPolicy failed: %v", err)
 	}
-	common.Log.Infof("EzspSetPolicy EZSP_MESSAGE_TAG_AND_CONTENTS_IN_CALLBACK")
+	ncpTrace("EzspSetPolicy EZSP_MESSAGE_TAG_AND_CONTENTS_IN_CALLBACK")
 
 	err = EzspSetValue_MAXIMUM_INCOMING_TRANSFER_SIZE(84)
 	if err != nil {
 		return fmt.Errorf("EzspSetValue_MAXIMUM_INCOMING_TRANSFER_SIZE failed: %v", err)
 	}
-	common.Log.Infof("EzspSetValue_MAXIMUM_INCOMING_TRANSFER_SIZE = 84")
+	ncpTrace("EzspSetValue_MAXIMUM_INCOMING_TRANSFER_SIZE = 84")
 
 	err = EzspSetValue_MAXIMUM_OUTGOING_TRANSFER_SIZE(84)
 	if err != nil {
 		return fmt.Errorf("EzspSetValue_MAXIMUM_OUTGOING_TRANSFER_SIZE failed: %v", err)
 	}
-	common.Log.Infof("EzspSetValue_MAXIMUM_OUTGOING_TRANSFER_SIZE = 84")
+	ncpTrace("EzspSetValue_MAXIMUM_OUTGOING_TRANSFER_SIZE = 84")
 
 	err = ncpSetRadio()
 	if err != nil {
 		return fmt.Errorf("ncpSetRadio failed: %v", err)
 	}
-	common.Log.Infof("ncpSetRadio OK")
+	ncpTrace("ncpSetRadio OK")
 
 	return
 }
@@ -204,13 +209,13 @@ func EzspStackStatusHandler(emberStatus byte) {
 
 		nodeType, parameters, err := EzspGetNetworkParameters()
 		if err != nil {
-			common.Log.Debugf("EzspGetNetworkParameters failed: %v", err)
+			common.Log.Errorf("EzspGetNetworkParameters failed: %v", err)
 		} else {
 			MeshInfo.PANID = parameters.PanId
 			MeshInfo.Channel = parameters.RadioChannel
 			MeshInfo.ExPANID = parameters.ExtendedPanId
 
-			common.Log.Debugf("EMBER_NETWORK_UP NodeType = %d channels = %d panId = 0x%04x expanid = %016x\n",
+			ncpTrace("EMBER_NETWORK_UP NodeType = %d channels = %d panId = 0x%04x expanid = %016x",
 				nodeType,
 				parameters.RadioChannel,
 				parameters.PanId,
@@ -219,7 +224,7 @@ func EzspStackStatusHandler(emberStatus byte) {
 
 	case EMBER_NETWORK_DOWN, EMBER_RECEIVED_KEY_IN_THE_CLEAR, EMBER_NO_NETWORK_KEY_RECEIVED, EMBER_NO_LINK_KEY_RECEIVED, EMBER_PRECONFIGURED_KEY_REQUIRED, EMBER_MOVE_FAILED, EMBER_JOIN_FAILED, EMBER_NO_BEACONS, EMBER_CANNOT_JOIN_AS_ROUTER:
 		MeshStatusUp = false
-		common.Log.Debug("EMBER_NETWORK_DOWN")
+		ncpTrace("EMBER_NETWORK_DOWN")
 
 	default:
 		common.Log.Errorf("unknown status = 0x%02x", emberStatus)
@@ -242,7 +247,7 @@ func EzspMessageSentHandler(outgoingMessageType byte,
 
 //todo source route table 没处理
 func EzspIncomingSenderEui64Handler(senderEui64 uint64) {
-	Networker.NcpIncomingSenderEui64Handler(senderEui64)
+	//Networker.NcpIncomingSenderEui64Handler(senderEui64)
 }
 
 func EzspIncomingMessageHandler(incomingMessageType byte,
@@ -255,6 +260,7 @@ func EzspIncomingMessageHandler(incomingMessageType byte,
 	message []byte) {
 	//todo 节点表中创建节点，超时计数重置
 
+	ncpTrace("Incoming %s message from 0x%04x, Profile 0x%04x, Cluster 0x%04x: 0x%x", incomingMessageTypeToString(incomingMessageType), sender, apsFrame.ProfileId, apsFrame.ClusterId, message)
 	Networker.NcpIncomingMessageHandler(incomingMessageType,
 		apsFrame,
 		lastHopLqi,
@@ -266,7 +272,11 @@ func EzspIncomingMessageHandler(incomingMessageType byte,
 }
 
 func EzspIncomingRouteErrorHandler(emberStatus byte, target uint16) {
-	ncpSendMTORR()
+	NcpSendMTORR()
+}
+
+func EzspIncomingRouteRecordHandler(source uint16, sourceEui uint64, lastHopLqi byte, lastHopRssi int8, relay []uint16) {
+
 }
 
 func EzspTrustCenterJoinHandler(newNodeId uint16,
@@ -301,7 +311,7 @@ func EzspTrustCenterJoinHandler(newNodeId uint16,
 	}
 }
 
-func ncpSendMTORR() {
+func NcpSendMTORR() {
 	if MeshStatusUp {
 		EzspSendManyToOneRouteRequest(EMBER_HIGH_RAM_CONCENTRATOR, 0)
 	}

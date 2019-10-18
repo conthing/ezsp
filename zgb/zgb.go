@@ -31,8 +31,8 @@ func TickRunning(_ chan error) {
 		common.Log.Errorf("NcpConfig failed: %v", err)
 	}
 
-	common.Log.Infof("Print All Configurations...")
-	ezsp.NcpPrintAllConfigurations()
+	//common.Log.Infof("Print All Configurations...")
+	//ezsp.NcpPrintAllConfigurations()
 
 	rebootCnt, err := ezsp.NcpGetAndIncRebootCnt()
 	if err != nil {
@@ -59,6 +59,12 @@ func TickRunning(_ chan error) {
 		common.Log.Errorf("EzspNetworkInit failed: %v", err)
 	}
 	common.Log.Infof("EzspNetworkInit OK")
+
+	err = ezsp.EzspPermitJoining(60)
+	if err != nil {
+		common.Log.Errorf("EzspPermitJoining failed: %v", err)
+	}
+	common.Log.Infof("EzspPermitJoining for 60 seconds")
 
 	for {
 		ezsp.EzspTick()

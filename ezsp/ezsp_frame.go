@@ -19,7 +19,7 @@ var sequence byte
 var seqMutex sync.Mutex
 
 // callback 发送到这个ch
-var callbackCh = make(chan *EzspFrame, 1)
+var callbackCh = make(chan *EzspFrame, 8)
 
 // 用sequence做key的数组，存放收到的response时发往的ch
 var responseChMap [256]chan *EzspFrame

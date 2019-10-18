@@ -1627,6 +1627,24 @@ const (
 	EMBER_INCOMING_BROADCAST_LOOPBACK = byte(5)
 )
 
+// ID to string
+func incomingMessageTypeToString(incomingMessageType byte) string {
+	name, ok := incomingMessageTypeStringMap[incomingMessageType]
+	if !ok {
+		name = fmt.Sprintf("UNKNOWN_MESSAGE_TYPE_%02X", incomingMessageType)
+	}
+	return name
+}
+
+var incomingMessageTypeStringMap = map[byte]string{
+	EMBER_INCOMING_UNICAST:            "UNICAST",
+	EMBER_INCOMING_UNICAST_REPLY:      "UNICAST_REPLY",
+	EMBER_INCOMING_MULTICAST:          "MULTICAST",
+	EMBER_INCOMING_MULTICAST_LOOPBACK: "MULTICAST_LOOPBACK",
+	EMBER_INCOMING_BROADCAST:          "BROADCAST",
+	EMBER_INCOMING_BROADCAST_LOOPBACK: "BROADCAST_LOOPBACK",
+}
+
 // **************** Device Update Status sent to the Trust Center ****************
 const (
 	EMBER_STANDARD_SECURITY_SECURED_REJOIN   = byte(0)
@@ -1770,12 +1788,84 @@ const (
 	EZSP_ACTIVE_SCAN = byte(0x01)
 )
 
+// **************** APS option to use when sending a message ****************
+const (
+	/** No options. */
+	EMBER_APS_OPTION_NONE = uint16(0x0000)
+
+	EMBER_APS_OPTION_ENCRYPT_WITH_TRANSIENT_KEY = uint16(0x0001)
+
+	/** This signs the application layer message body (APS Frame not included)
+	  and appends the ECDSA signature to the end of the message.  Needed by
+	  Smart Energy applications.  This requires the CBKE and ECC libraries.
+	  The ::emberDsaSignHandler() function is called after DSA signing
+	  is complete but before the message has been sent by the APS layer.
+	  Note that when passing a buffer to the stack for DSA signing, the final
+	  byte in the buffer has special significance as an indicator of how many
+	  leading bytes should be ignored for signature purposes.  Refer to API
+	  documentation of emberDsaSign() or the dsaSign EZSP command for further
+	  details about this requirement.
+	*/
+	EMBER_APS_OPTION_DSA_SIGN = uint16(0x0010)
+	/** Send the message using APS Encryption, using the Link Key shared
+	  with the destination node to encrypt the data at the APS Level. */
+	EMBER_APS_OPTION_ENCRYPTION = uint16(0x0020)
+	/** Resend the message using the APS retry mechanism.  In the mesh stack,
+	  this option and the enable route discovery option must be enabled for
+	  an existing route to be repaired automatically. */
+	EMBER_APS_OPTION_RETRY = uint16(0x0040)
+	/** Send the message with the NWK 'enable route discovery' flag, which
+	  causes a route discovery to be initiated if no route to the destination
+	  is known.  Note that in the mesh stack, this option and the APS retry
+	  option must be enabled an existing route to be repaired
+	  automatically. */
+	EMBER_APS_OPTION_ENABLE_ROUTE_DISCOVERY = uint16(0x0100)
+	/** Send the message with the NWK 'force route discovery' flag, which causes
+	  a route discovery to be initiated even if one is known. */
+	EMBER_APS_OPTION_FORCE_ROUTE_DISCOVERY = uint16(0x0200)
+	/** Include the source EUI64 in the network frame. */
+	EMBER_APS_OPTION_SOURCE_EUI64 = uint16(0x0400)
+	/** Include the destination EUI64 in the network frame. */
+	EMBER_APS_OPTION_DESTINATION_EUI64 = uint16(0x0800)
+	/** Send a ZDO request to discover the node ID of the destination, if it is
+	  not already know. */
+	EMBER_APS_OPTION_ENABLE_ADDRESS_DISCOVERY = uint16(0x1000)
+	/** This message is being sent in response to a call to
+	  ::emberPollHandler().  It causes the message to be sent
+	  immediately instead of being queued up until the next poll from the
+	  (end device) destination. */
+	EMBER_APS_OPTION_POLL_RESPONSE = uint16(0x2000)
+	/** This incoming message is a valid ZDO request and the application
+	* is responsible for sending a ZDO response. This flag is used only
+	* within emberIncomingMessageHandler() when
+	* EMBER_APPLICATION_RECEIVES_UNSUPPORTED_ZDO_REQUESTS is defined. */
+	EMBER_APS_OPTION_ZDO_RESPONSE_REQUIRED = uint16(0x4000)
+	/** This message is part of a fragmented message.  This option may only
+	  be set for unicasts.  The groupId field gives the index of this
+	  fragment in the low-order byte.  If the low-order byte is zero this
+	  is the first fragment and the high-order byte contains the number
+	  of fragments in the message. */
+	EMBER_APS_OPTION_FRAGMENT = uint16(0x8000)
+)
+
 // **************** Other const ****************
 const (
 	EZSP_PROTOCOL_VERSION = byte(0x04)
 	EZSP_STACK_TYPE_MESH  = byte(0x02)
 
 	EMBER_NULL_NODE_ID = uint16(0xffff)
+
+	/** Broadcast to all routers. */
+	EMBER_BROADCAST_ADDRESS = uint16(0xFFFC)
+	/** Broadcast to all non-sleepy devices. */
+	EMBER_RX_ON_WHEN_IDLE_BROADCAST_ADDRESS = uint16(0xFFFD)
+	/** Broadcast to all devices, including sleepy end devices. */
+	EMBER_SLEEPY_BROADCAST_ADDRESS = uint16(0xFFFF)
+
+	/** @} END Broadcast Addresses */
+
+	// From table 3.51 of 053474r14
+	EMBER_MIN_BROADCAST_ADDRESS = uint16(0xFFF8)
 
 	/**
 	 * Ember Concentrator Types

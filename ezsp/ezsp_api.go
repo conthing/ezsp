@@ -77,11 +77,11 @@ type EmberApsFrame struct {
 	/** The destination endpoint. */
 	DestinationEndpoint byte
 	/** A bitmask of options from the enumeration above. */
-	options uint16
+	Options uint16
 	/** The group ID for this message, if it is multicast mode. */
-	groupId uint16
+	GroupId uint16
 	/** The sequence number. */
-	sequence byte
+	Sequence byte
 }
 
 type EmberZigbeeNetwork struct {
@@ -586,6 +586,25 @@ func EzspSendManyToOneRouteRequest(concentratorType uint16, radius byte) {
 	return
 }
 
+func EzspPermitJoining(duration byte) (err error) {
+	response, err := EzspFrameSend(EZSP_PERMIT_JOINING, []byte{duration})
+	if err == nil {
+		err = generalResponseError(response, EZSP_PERMIT_JOINING)
+		if err == nil {
+			err = generalResponseLengthEqual(response, EZSP_PERMIT_JOINING, 1)
+			if err == nil {
+				emberStatus := response.Data[0]
+				if emberStatus != EMBER_SUCCESS {
+					err = EmberError{emberStatus, "EzspPermitJoining()"}
+					return
+				}
+				ezspApiTrace("EzspPermitJoining(%d)", duration)
+			}
+		}
+	}
+	return
+}
+
 func EzspSendUnicast(outgoingMessageType byte, indexOrDestination uint16, apsFrame *EmberApsFrame, messageTag byte, message []byte) (sequence byte, err error) {
 	data := []byte{
 		outgoingMessageType,
@@ -597,11 +616,11 @@ func EzspSendUnicast(outgoingMessageType byte, indexOrDestination uint16, apsFra
 		byte(apsFrame.ClusterId >> 8),
 		apsFrame.SourceEndpoint,
 		apsFrame.DestinationEndpoint,
-		byte(apsFrame.options),
-		byte(apsFrame.options >> 8),
-		byte(apsFrame.groupId),
-		byte(apsFrame.groupId >> 8),
-		apsFrame.sequence,
+		byte(apsFrame.Options),
+		byte(apsFrame.Options >> 8),
+		byte(apsFrame.GroupId),
+		byte(apsFrame.GroupId >> 8),
+		apsFrame.Sequence,
 		messageTag,
 		byte(len(message))}
 	data = append(data, message...)

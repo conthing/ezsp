@@ -122,8 +122,8 @@ const (
 
 type ZclContext struct {
 	LocalEdp  byte //todo 改成local 和 remote
-	RemoteEdp  byte
-	Context interface{}
+	RemoteEdp byte
+	Context   interface{}
 
 	GlobalHandle ZclGlobalHandle
 
@@ -333,10 +333,10 @@ func ZclPackWriteAttr(attrId []byte, attrDataType byte, attrData []byte) (data [
 
 //Parse means parse the frametype data
 func (z *ZclContext) Parse(profile uint16, cluster uint16, data []byte) (resp []byte, err error) {
-	if profile != 0x104 {
-		common.Log.Errorf("ErrUnsupportProfile")
-		return nil, ErrUnsupportProfile
-	}
+	//if profile != 0x104 {
+	//	common.Log.Errorf("ErrUnsupportProfile")
+	//	return nil, ErrUnsupportProfile
+	//}
 
 	frameCtrl := data[0]
 	frameType := frameCtrl & 0x03
@@ -352,8 +352,8 @@ func (z *ZclContext) Parse(profile uint16, cluster uint16, data []byte) (resp []
 	sequenceNumber := data[1]
 	commandIdentifier := data[2]
 
-	common.Log.Debugf("FrameControl:%02x SequenceNumber:%02x CommandIdentifier:%02x Payload: 0x%x\n",
-		frameCtrl, sequenceNumber, commandIdentifier, data[3:])
+	//common.Log.Debugf("FrameControl:%02x SequenceNumber:%02x CommandIdentifier:%02x Payload: 0x%x\n",
+	//	frameCtrl, sequenceNumber, commandIdentifier, data[3:])
 
 	if frameType == 0x00 {
 		resp, err = z.ParseGlobalCommand(cluster, direction, disableDefaultResponse, sequenceNumber, commandIdentifier, data[3:])
@@ -584,7 +584,7 @@ func (z *ZclContext) getPayload(datatype byte, payload []byte) (val interface{},
 		length = 0
 		val = nil
 	default:
-		common.Log.Error("ErrorDataTypeNotSupport")
+		common.Log.Errorf("ErrorDataTypeNotSupport")
 		return nil, 0, ErrorDataTypeNotSupport
 	}
 	return
@@ -600,7 +600,7 @@ func (z *ZclContext) ParseGlobalCommand(cluster uint16, direction bool, disableD
 		case CmdWriteAttribResponse:
 			common.Log.Errorf("Write Attribute not support")
 		case CmdReportAttrib:
-			common.Log.Debug("Attributes Reported")
+			//common.Log.Debug("Attributes Reported")
 			attribs, err := z.getReportAttribs(data)
 			z.attribsReported(cluster, attribs)
 			if err != nil {
@@ -610,11 +610,11 @@ func (z *ZclContext) ParseGlobalCommand(cluster uint16, direction bool, disableD
 		case CmdDefaultResponse:
 
 		default:
-			common.Log.Error("ErrUnsupportGeneralCommand")
+			common.Log.Errorf("ErrUnsupportGeneralCommand")
 			return nil, ErrUnsupportGeneralCommand
 		}
 	} else {
-		common.Log.Error("ErrUnsupportGeneralCommand")
+		common.Log.Errorf("ErrUnsupportGeneralCommand")
 		return nil, ErrUnsupportGeneralCommand
 	}
 
