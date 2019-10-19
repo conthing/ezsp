@@ -605,6 +605,30 @@ func EzspPermitJoining(duration byte) (err error) {
 	return
 }
 
+func EzspRemoveDevice(destShort uint16, destLong uint64, targetLong uint64) (err error) {
+	data := make([]byte, 18)
+	binary.LittleEndian.PutUint16(data, destShort)
+	binary.LittleEndian.PutUint64(data[2:], destLong)
+	binary.LittleEndian.PutUint64(data[10:], targetLong)
+
+	response, err := EzspFrameSend(EZSP_REMOVE_DEVICE, data)
+	if err == nil {
+		err = generalResponseError(response, EZSP_REMOVE_DEVICE)
+		if err == nil {
+			err = generalResponseLengthEqual(response, EZSP_REMOVE_DEVICE, 1)
+			if err == nil {
+				emberStatus := response.Data[0]
+				if emberStatus != EMBER_SUCCESS {
+					err = EmberError{emberStatus, "EzspRemoveDevice()"}
+					return
+				}
+				ezspApiTrace("EzspRemoveDevice(%x)", targetLong)
+			}
+		}
+	}
+	return
+}
+
 func EzspSendUnicast(outgoingMessageType byte, indexOrDestination uint16, apsFrame *EmberApsFrame, messageTag byte, message []byte) (sequence byte, err error) {
 	data := []byte{
 		outgoingMessageType,
@@ -705,7 +729,7 @@ func EzspGetMfgToken_MFG_PHY_CONFIG() (phyConfig uint16, err error) {
 func EzspCallback() (err error) {
 	response, err := EzspFrameSend(EZSP_CALLBACK, []byte{})
 	if err == nil {
-		if response == nil { //正常应该返回nil，真正的callback从ezspCallbackDispatch处理
+		if response == nil { //正常应该返回nil，真正的callback从EzspCallbackDispatch处理
 			return nil
 		}
 		if response.FrameID == EZSP_INVALID_COMMAND {

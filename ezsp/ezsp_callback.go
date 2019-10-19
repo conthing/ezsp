@@ -6,21 +6,14 @@ import (
 	"github.com/conthing/utils/common"
 )
 
-func EzspTick() {
-	select {
-	case cb := <-callbackCh:
-		ezspCallbackDispatch(cb)
-	}
-}
-
-func ezspCallbackDispatch(cb *EzspFrame) {
+func EzspCallbackDispatch(cb *EzspFrame) {
 
 	if cb == nil {
-		common.Log.Errorf("ezspCallbackDispatch with nil frame")
+		common.Log.Errorf("EzspCallbackDispatch with nil frame")
 		return
 	}
 	if cb.Data == nil {
-		common.Log.Errorf("ezspCallbackDispatch with nil Data")
+		common.Log.Errorf("EzspCallbackDispatch with nil Data")
 		return
 	}
 
@@ -29,7 +22,7 @@ func ezspCallbackDispatch(cb *EzspFrame) {
 	switch cb.FrameID {
 	case EZSP_INCOMING_MESSAGE_HANDLER:
 		if len(cb.Data) < 17 {
-			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
+			common.Log.Errorf("EzspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
 			return
 		}
 
@@ -49,7 +42,7 @@ func ezspCallbackDispatch(cb *EzspFrame) {
 		addressIndex := cb.Data[17]
 		messageLength := cb.Data[18]
 		if len(cb.Data) != int(messageLength)+19 {
-			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
+			common.Log.Errorf("EzspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
 			return
 		}
 
@@ -64,7 +57,7 @@ func ezspCallbackDispatch(cb *EzspFrame) {
 
 	case EZSP_STACK_STATUS_HANDLER:
 		if len(cb.Data) != 1 {
-			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
+			common.Log.Errorf("EzspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
 			return
 		}
 		emberStatus := cb.Data[0]
@@ -72,7 +65,7 @@ func ezspCallbackDispatch(cb *EzspFrame) {
 
 	case EZSP_INCOMING_SENDER_EUI64_HANDLER:
 		if len(cb.Data) != 8 {
-			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
+			common.Log.Errorf("EzspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
 			return
 		}
 		senderEui64 := binary.LittleEndian.Uint64(cb.Data)
@@ -80,7 +73,7 @@ func ezspCallbackDispatch(cb *EzspFrame) {
 
 	case EZSP_MESSAGE_SENT_HANDLER:
 		if len(cb.Data) < 17 {
-			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
+			common.Log.Errorf("EzspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
 			return
 		}
 		outgoingMessageType := cb.Data[0]
@@ -97,7 +90,7 @@ func ezspCallbackDispatch(cb *EzspFrame) {
 		emberStatus := cb.Data[15]
 		messageLength := cb.Data[16]
 		if len(cb.Data) != int(messageLength)+17 {
-			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
+			common.Log.Errorf("EzspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
 			return
 		}
 
@@ -110,7 +103,7 @@ func ezspCallbackDispatch(cb *EzspFrame) {
 
 	case EZSP_INCOMING_ROUTE_ERROR_HANDLER:
 		if len(cb.Data) != 3 {
-			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
+			common.Log.Errorf("EzspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
 			return
 		}
 		emberStatus := cb.Data[0]
@@ -119,7 +112,7 @@ func ezspCallbackDispatch(cb *EzspFrame) {
 
 	case EZSP_TRUST_CENTER_JOIN_HANDLER:
 		if len(cb.Data) != 14 {
-			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
+			common.Log.Errorf("EzspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
 			return
 		}
 		newNodeId := binary.LittleEndian.Uint16(cb.Data)
@@ -140,7 +133,7 @@ func ezspCallbackDispatch(cb *EzspFrame) {
 	case EZSP_CUSTOM_FRAME_HANDLER:
 	case EZSP_ENERGY_SCAN_RESULT_HANDLER:
 		if len(cb.Data) != 2 {
-			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
+			common.Log.Errorf("EzspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
 			return
 		}
 		channel := cb.Data[0]
@@ -148,7 +141,7 @@ func ezspCallbackDispatch(cb *EzspFrame) {
 		EzspEnergyScanResultHandler(channel, maxRssiValue)
 	case EZSP_NETWORK_FOUND_HANDLER:
 		if len(cb.Data) != 16 {
-			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
+			common.Log.Errorf("EzspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
 			return
 		}
 		networkFound := EmberZigbeeNetwork{}
@@ -163,7 +156,7 @@ func ezspCallbackDispatch(cb *EzspFrame) {
 		EzspNetworkFoundHandler(&networkFound, lqi, rssi)
 	case EZSP_SCAN_COMPLETE_HANDLER:
 		if len(cb.Data) != 2 {
-			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
+			common.Log.Errorf("EzspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
 			return
 		}
 		channel := cb.Data[0]
@@ -176,7 +169,7 @@ func ezspCallbackDispatch(cb *EzspFrame) {
 	case EZSP_POLL_HANDLER:
 	case EZSP_INCOMING_ROUTE_RECORD_HANDLER:
 		if len(cb.Data) < 13 {
-			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
+			common.Log.Errorf("EzspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
 			return
 		}
 		source := binary.LittleEndian.Uint16(cb.Data)
@@ -185,7 +178,7 @@ func ezspCallbackDispatch(cb *EzspFrame) {
 		lastHopRssi := int8(cb.Data[11])
 		relayCount := cb.Data[12]
 		if len(cb.Data) != 13+2*int(relayCount) {
-			common.Log.Errorf("ezspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
+			common.Log.Errorf("EzspCallbackDispatch %s with invalid Data length %d", frameIDToName(cb.FrameID), len(cb.Data))
 			return
 		}
 		relay := make([]uint16, relayCount)
@@ -225,6 +218,6 @@ func ezspCallbackDispatch(cb *EzspFrame) {
 	case EZSP_RF4CE_UNPAIR_HANDLER:
 	case EZSP_RF4CE_UNPAIR_COMPLETE_HANDLER:
 	default:
-		common.Log.Errorf("ezspCallbackDispatch unknown callback id 0x%x", cb.FrameID)
+		common.Log.Errorf("EzspCallbackDispatch unknown callback id 0x%x", cb.FrameID)
 	}
 }

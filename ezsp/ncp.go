@@ -19,7 +19,7 @@ type StNetworker struct {
 	NcpIncomingMessageHandler func(incomingMessageType byte, apsFrame *EmberApsFrame, lastHopLqi byte, lastHopRssi int8, sender uint16, bindingIndex byte, addressIndex byte, message []byte)
 	//EzspIncomingRouteErrorHandler(emberStatus byte, target uint16)
 	//EzspIncomingRouteRecordHandler(source uint16, sourceEui uint64, lastHopLqi byte, lastHopRssi int8, relay []uint16)
-	//EzspTrustCenterJoinHandler(newNodeId uint16, newNodeEui64 uint64, deviceUpdateStatus byte, joinDecision byte, parentOfNewNode uint16)
+	NcpTrustCenterJoinHandler func(newNodeId uint16, newNodeEui64 uint64, deviceUpdateStatus byte, joinDecision byte, parentOfNewNode uint16)
 	//EzspEnergyScanResultHandler(channel byte, maxRssiValue int8)
 	//EzspScanCompleteHandler(channel byte, emberStatus byte)
 	//EzspNetworkFoundHandler(networkFound *EmberZigbeeNetwork, lqi byte, rssi int8)
@@ -258,7 +258,6 @@ func EzspIncomingMessageHandler(incomingMessageType byte,
 	bindingIndex byte,
 	addressIndex byte,
 	message []byte) {
-	//todo 节点表中创建节点，超时计数重置
 
 	ncpTrace("Incoming %s message from 0x%04x, Profile 0x%04x, Cluster 0x%04x: 0x%x", incomingMessageTypeToString(incomingMessageType), sender, apsFrame.ProfileId, apsFrame.ClusterId, message)
 	Networker.NcpIncomingMessageHandler(incomingMessageType,
@@ -284,31 +283,7 @@ func EzspTrustCenterJoinHandler(newNodeId uint16,
 	deviceUpdateStatus byte,
 	joinDecision byte,
 	parentOfNewNode uint16) {
-	if (deviceUpdateStatus == EMBER_STANDARD_SECURITY_UNSECURED_JOIN) ||
-		(deviceUpdateStatus == EMBER_HIGH_SECURITY_UNSECURED_JOIN) {
-		//ncpNodeGet(newNodeId);
-		//C4_NODE *pt_c4n = (C4_NODE *)ncpNodeAppPtGet(newNodeId,c4NodeCreat);
-		//if(pt_c4n != NULL)
-		//{
-		//	pt_c4n->c4NodeStatus.type = C4_NODE_TYPE_NEW;
-		//	LogInfo("%s deviceUpdateStatus = 0x%x newNodeId = 0x%04x C4_NODE_TYPE_NEW\r\n",__FUNCTION__,deviceUpdateStatus,newNodeId);
-		//}
-	} else if (deviceUpdateStatus == EMBER_STANDARD_SECURITY_SECURED_REJOIN) ||
-		(deviceUpdateStatus == EMBER_STANDARD_SECURITY_UNSECURED_REJOIN) ||
-		(deviceUpdateStatus == EMBER_HIGH_SECURITY_SECURED_REJOIN) ||
-		(deviceUpdateStatus == EMBER_HIGH_SECURITY_UNSECURED_REJOIN) {
-		//ncpNodeGet(newNodeId);
-		//C4_NODE *pt_c4n = (C4_NODE *)ncpNodeAppPtGet(newNodeId,c4NodeCreat);
-		//if(pt_c4n != NULL)
-		//{
-		//	pt_c4n->c4NodeStatus.type = C4_NODE_TYPE_REJION;
-		//	LogInfo("%s deviceUpdateStatus = 0x%x newNodeId = 0x%04x C4_NODE_TYPE_REJION\r\n",__FUNCTION__,deviceUpdateStatus,newNodeId);
-		//}
-	} else if deviceUpdateStatus == EMBER_DEVICE_LEFT {
-		//C4NetworkLeaveCheck(newNodeId);
-	} else {
-		common.Log.Errorf("unknown deviceUpdateStatus = 0x%x newNodeId = 0x%04x\r\n", deviceUpdateStatus, newNodeId)
-	}
+	Networker.NcpTrustCenterJoinHandler(newNodeId, newNodeEui64, deviceUpdateStatus, joinDecision, parentOfNewNode)
 }
 
 func NcpSendMTORR() {

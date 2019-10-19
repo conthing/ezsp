@@ -19,7 +19,7 @@ var sequence byte
 var seqMutex sync.Mutex
 
 // callback 发送到这个ch
-var callbackCh = make(chan *EzspFrame, 8)
+var CallbackCh = make(chan *EzspFrame, 8)
 
 // 用sequence做key的数组，存放收到的response时发往的ch
 var responseChMap [256]chan *EzspFrame
@@ -56,9 +56,9 @@ func responseChMapClear(i byte) {
 func EzspFrameInitVariables() {
 	sequence = 0
 
-	// 清空 callbackCh
+	// 清空 CallbackCh
 	select {
-	case <-callbackCh:
+	case <-CallbackCh:
 	default:
 	}
 
@@ -119,12 +119,12 @@ func AshRecvImp(data []byte) error {
 		return fmt.Errorf("EZSP frame parse error: %v", err)
 	}
 	ezspFrameTrace("EZSP recv < %s", ezspFrame)
-	if ezspFrame.Callback == 2 { // async callback 给 callbackCh
-		callbackCh <- ezspFrame
+	if ezspFrame.Callback == 2 { // async callback 给 CallbackCh
+		CallbackCh <- ezspFrame
 		return nil
 	}
-	if ezspFrame.Callback == 1 { // sync callback 也给 callbackCh，另外发个nil给堵塞的发送函数
-		callbackCh <- ezspFrame
+	if ezspFrame.Callback == 1 { // sync callback 也给 CallbackCh，另外发个nil给堵塞的发送函数
+		CallbackCh <- ezspFrame
 	}
 	ch := responseChMap[ezspFrame.Sequence]
 	if ch != nil {

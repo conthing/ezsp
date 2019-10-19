@@ -60,14 +60,14 @@ func TickRunning(_ chan error) {
 	}
 	common.Log.Infof("EzspNetworkInit OK")
 
-	err = ezsp.EzspPermitJoining(60)
-	if err != nil {
-		common.Log.Errorf("EzspPermitJoining failed: %v", err)
-	}
-	common.Log.Infof("EzspPermitJoining for 60 seconds")
+	//err = c4.C4SetPermission(60, []*c4.StPassport{&c4.StPassport{PS: "inSona:IN-C01-WR-4", MAC: "xxxxxxxxxxxxce73"}})
+	//if err != nil {
+	//	common.Log.Errorf("C4SetPermission failed: %v", err)
+	//}
+	//common.Log.Infof("C4SetPermission for 60 seconds")
 
 	for {
-		ezsp.EzspTick()
+		c4.C4Tick()
 	}
 }
 

@@ -1,6 +1,7 @@
 package c4
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -9,9 +10,11 @@ import (
 	"github.com/conthing/utils/common"
 )
 
+//todo 收发通知，node的online offline deleted通知
 const (
-	C4_PROFILE = uint16(0xc25d)
-	C4_CLUSTER = uint16(0x0001)
+	C4_PROFILE  = uint16(0xc25d)
+	C4_CLUSTER  = uint16(0x0001)
+	ZDO_PROFILE = uint16(0x0000)
 
 	C4_ATTR_DEVICE_TYPE                       = uint16(0x0000)
 	C4_ATTR_SSCP_ANNOUNCE_WINDOW              = uint16(0x0001)
@@ -51,6 +54,8 @@ type StNode struct {
 	MAC          uint64
 	LastRecvTime time.Time
 	State        byte
+	Newjoin      bool
+	ToBeDeleted  bool
 
 	FirmwareVersion              string
 	PS                           string
@@ -66,6 +71,34 @@ type StNode struct {
 }
 
 var Nodes sync.Map
+
+func findNodeIDbyMAC(mac uint64) (nodeID uint16) {
+	nodeID = ezsp.EMBER_NULL_NODE_ID
+	Nodes.Range(func(key, value interface{}) bool {
+		if node, ok := value.(StNode); ok {
+			if node.MAC == mac {
+				nodeID = node.NodeID
+				return false
+			}
+		}
+		return true
+	})
+	return
+}
+
+func C4Tick() {
+	select {
+	case cb := <-ezsp.CallbackCh:
+		ezsp.EzspCallbackDispatch(cb)
+	case <-time.After(time.Millisecond * 3000):
+		Nodes.Range(func(key, value interface{}) bool {
+			if node, ok := value.(StNode); ok {
+				node.RefreshHandle()
+			}
+			return true
+		})
+	}
+}
 
 func (node *StNode) AttribReportedHandle(z *zcl.ZclContext, cluster uint16, list []*zcl.StAttrib) error {
 	var ok bool
@@ -195,27 +228,52 @@ func (node *StNode) getState() byte {
 	}
 }
 
+func RemoveNode(node *StNode) {
+	err := ezsp.EzspRemoveDevice(node.NodeID, node.MAC, node.MAC)
+	if err != nil {
+		common.Log.Errorf("EzspRemoveDevice failed: %v", err)
+	}
+
+	Nodes.Delete(node.NodeID)
+}
+
 // RefreshHandle 收到报文发生变化，或定时刷新时调用
 func (node *StNode) RefreshHandle() {
+	if node.ToBeDeleted {
+		// todo 通知delete
+		Nodes.Delete(node.NodeID)
+		common.Log.Infof("node 0x%016x deleted", node.MAC)
+		return
+	}
+
 	newState := node.getState()
 
 	if newState != node.State {
 		if newState == C4_STATE_ONLINE {
-			if node.State < C4_STATE_ONLINE { //NULL或CONNECTING变成ONLINE，要检查passport，不允许的踢出
-
+			if node.State < C4_STATE_ONLINE && node.Newjoin { //初次入网，且NULL、CONNECTING变成ONLINE，要检查passport，不允许的踢出
+				if passportMatch(node.PS, fmt.Sprintf("%016x", node.MAC)) >= 0 {
+					common.Log.Infof("%s node 0x%016x join C4 network", node.PS, node.MAC)
+				} else {
+					common.Log.Errorf("reject node 0x%016x, remove it", node.MAC)
+					RemoveNode(node)
+					return
+				}
+			} else {
+				common.Log.Infof("node 0x%016x reonline", node.MAC)
 			}
+			// todo 通知online
+		} else if newState == C4_STATE_OFFLINE {
+			common.Log.Infof("node 0x%016x offline", node.MAC)
+			// todo 通知offline
 		}
+		node.State = newState
 	}
-	switch node.State { //上次状态
-	case C4_STATE_NULL:
-	case C4_STATE_CONNECTING:
-
-	}
+	Nodes.Store(node.NodeID, *node) // map中存储
 }
 
 type StPassport struct {
-	ps  string
-	mac string
+	PS  string
+	MAC string
 }
 
 var allPassPorts []*StPassport
@@ -242,12 +300,12 @@ func checkPassportMAC(mac string, ppMac string) (match int) {
 	return
 }
 
-func C4DevicePassportMatch(ps string, mac string) (maxHit int) {
+func passportMatch(ps string, mac string) (maxHit int) {
 	maxHit = -1
 	if allPassPorts != nil {
 		for _, p := range allPassPorts {
-			if ps == p.ps {
-				match := checkPassportMAC(mac, p.mac)
+			if ps == p.PS {
+				match := checkPassportMAC(mac, p.MAC)
 				if match > maxHit {
 					maxHit = match
 					if maxHit >= 16 {
@@ -281,35 +339,76 @@ func isPassportMACValid(mac string) bool {
 	return true
 }
 
-func C4NetworkSetPassports(passports []*StPassport) bool {
+func C4SetPermission(duration byte, passports []*StPassport) (err error) {
 
-	if passports != nil {
-		common.Log.Errorf("C4NetworkSetPassports passports=NULL")
-		return false
+	if passports == nil {
+		err = fmt.Errorf("C4SetPassports passports=NULL")
+		return
 	}
 	common.Log.Debugf("permision to ...")
 	for i, p := range passports {
 		if p != nil {
-			common.Log.Debugf("%d: MAC=%s PS=%s", i, p.mac, p.ps)
-			if p.ps == "" {
-				common.Log.Errorf("C4NetworkSetPassports passport %d PS=NULL", i)
-				return false
+			common.Log.Debugf("%d: MAC=%s PS=%s", i, p.MAC, p.PS)
+			if p.PS == "" {
+				err = fmt.Errorf("C4SetPassports passport %d PS=NULL", i)
+				return
 			}
-			if isPassportMACValid(passports[i].mac) == false {
-				common.Log.Errorf("C4NetworkSetPassports passport %d mac -%s- invalid", i, p.mac)
-				return false
+			if isPassportMACValid(p.MAC) == false {
+				err = fmt.Errorf("C4SetPassports passport %d mac -%s- invalid", i, p.MAC)
+				return
 			}
 		}
 	}
 	allPassPorts = passports
 
-	return true
+	err = ezsp.EzspPermitJoining(duration)
+	if err != nil {
+		err = fmt.Errorf("EzspPermitJoining failed: %v", err)
+	}
+
+	return
 }
 
 func C4Init() {
+	ezsp.Networker.NcpTrustCenterJoinHandler = TrustCenterJoinHandler
 	ezsp.Networker.NcpMessageSentHandler = MessageSentHandler
 	ezsp.Networker.NcpIncomingMessageHandler = IncomingMessageHandler
+}
 
+func TrustCenterJoinHandler(newNodeId uint16,
+	newNodeEui64 uint64,
+	deviceUpdateStatus byte,
+	joinDecision byte,
+	parentOfNewNode uint16) {
+
+	now := time.Now()
+	var node StNode
+	value, ok := Nodes.Load(newNodeId) // 从map中加载
+	if ok {
+		if node, ok = value.(StNode); !ok {
+			common.Log.Errorf("Nodes map unsupported type")
+			return
+		}
+		node.Newjoin = false //已经在node表里的，不认为Newjoin
+	} else {
+		node = StNode{NodeID: newNodeId, MAC: newNodeEui64, LastRecvTime: now}
+		node.Newjoin = true
+	}
+
+	if (deviceUpdateStatus == ezsp.EMBER_STANDARD_SECURITY_UNSECURED_JOIN) ||
+		(deviceUpdateStatus == ezsp.EMBER_HIGH_SECURITY_UNSECURED_JOIN) {
+	} else if (deviceUpdateStatus == ezsp.EMBER_STANDARD_SECURITY_SECURED_REJOIN) ||
+		(deviceUpdateStatus == ezsp.EMBER_STANDARD_SECURITY_UNSECURED_REJOIN) ||
+		(deviceUpdateStatus == ezsp.EMBER_HIGH_SECURITY_SECURED_REJOIN) ||
+		(deviceUpdateStatus == ezsp.EMBER_HIGH_SECURITY_UNSECURED_REJOIN) {
+		node.Newjoin = false
+	} else if deviceUpdateStatus == ezsp.EMBER_DEVICE_LEFT {
+		node.ToBeDeleted = true
+	} else {
+		common.Log.Errorf("unknown deviceUpdateStatus = 0x%x newNodeId = 0x%04x\r\n", deviceUpdateStatus, newNodeId)
+		return
+	}
+	node.RefreshHandle()
 }
 
 func MessageSentHandler(outgoingMessageType byte,
@@ -347,8 +446,6 @@ func IncomingMessageHandler(incomingMessageType byte,
 		node = StNode{NodeID: sender, MAC: eui64, LastRecvTime: now}
 	}
 
-	//Nodes.Store(sender, StNode{NodeID: sender, MAC: eui64, LastRecvTime: now})
-
 	if apsFrame.ProfileId == C4_PROFILE {
 		if apsFrame.ClusterId == C4_CLUSTER {
 			zclContext := &zcl.ZclContext{LocalEdp: apsFrame.DestinationEndpoint, RemoteEdp: apsFrame.SourceEndpoint,
@@ -367,7 +464,7 @@ func IncomingMessageHandler(incomingMessageType byte,
 				respFrame.ClusterId = apsFrame.ClusterId
 				respFrame.SourceEndpoint = apsFrame.DestinationEndpoint
 				respFrame.DestinationEndpoint = apsFrame.SourceEndpoint
-				respFrame.Options = C4GetSendOptions(sender, respFrame.ProfileId, respFrame.ClusterId, byte(len(resp)))
+				respFrame.Options = getSendOptions(sender, respFrame.ProfileId, respFrame.ClusterId, byte(len(resp)))
 
 				ezsp.EzspSendUnicast(ezsp.EMBER_OUTGOING_DIRECT, sender, &respFrame, 0, resp)
 			} else if incomingMessageType == ezsp.EMBER_INCOMING_BROADCAST {
@@ -375,16 +472,49 @@ func IncomingMessageHandler(incomingMessageType byte,
 			}
 
 			node.RefreshHandle()
-			Nodes.Store(sender, node) // map中存储
 		}
 
-		//todo 设备表维护
+	} else if apsFrame.ProfileId == ZDO_PROFILE {
+
+	} else {
+		//todo 通知
 	}
 }
 
-//func C4SendMessage()
+var unicastTagSequence = byte(0)
 
-func C4GetSendOptions(destination uint16, profileId uint16, clusterId uint16, messageLength byte) (options uint16) {
+func nextSequence() byte {
+	unicastTagSequence++
+	if unicastTagSequence == 0 || unicastTagSequence == 0xff {
+		unicastTagSequence = 1
+	}
+	return unicastTagSequence
+}
+
+func C4SendUnicast(mac uint64,
+	profileId uint16,
+	clusterId uint16,
+	localEndpoint byte,
+	remoteEndpoint byte,
+	message []byte,
+	needConfirm bool) {
+
+	nodeID := findNodeIDbyMAC(mac)
+	var apsFrame ezsp.EmberApsFrame
+	apsFrame.ProfileId = profileId
+	apsFrame.ClusterId = clusterId
+	apsFrame.SourceEndpoint = localEndpoint
+	apsFrame.DestinationEndpoint = remoteEndpoint
+	apsFrame.Options = getSendOptions(nodeID, profileId, clusterId, byte(len(message)))
+	tag := byte(0)
+	if needConfirm {
+		tag = nextSequence()
+	}
+
+	ezsp.EzspSendUnicast(ezsp.EMBER_OUTGOING_DIRECT, nodeID, &apsFrame, tag, message)
+}
+
+func getSendOptions(destination uint16, profileId uint16, clusterId uint16, messageLength byte) (options uint16) {
 	if profileId == 0xc25d && clusterId == 0x0001 {
 		if destination >= ezsp.EMBER_BROADCAST_ADDRESS {
 			options = /*ezsp.EMBER_APS_OPTION_RETRY |*/ ezsp.EMBER_APS_OPTION_SOURCE_EUI64
