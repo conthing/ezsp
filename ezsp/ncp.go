@@ -12,17 +12,10 @@ func ncpTrace(format string, v ...interface{}) {
 	common.Log.Debugf(format, v...)
 }
 
-type StNetworker struct {
-	//EzspStackStatusHandler(emberStatus byte)
-	NcpMessageSentHandler func(outgoingMessageType byte, indexOrDestination uint16, apsFrame *EmberApsFrame, messageTag byte, emberStatus byte, message []byte)
-	//NcpIncomingSenderEui64Handler func(senderEui64 uint64)
+type StNcpCallbacks struct {
+	NcpMessageSentHandler     func(outgoingMessageType byte, indexOrDestination uint16, apsFrame *EmberApsFrame, messageTag byte, emberStatus byte, message []byte)
 	NcpIncomingMessageHandler func(incomingMessageType byte, apsFrame *EmberApsFrame, lastHopLqi byte, lastHopRssi int8, sender uint16, bindingIndex byte, addressIndex byte, message []byte)
-	//EzspIncomingRouteErrorHandler(emberStatus byte, target uint16)
-	//EzspIncomingRouteRecordHandler(source uint16, sourceEui uint64, lastHopLqi byte, lastHopRssi int8, relay []uint16)
 	NcpTrustCenterJoinHandler func(newNodeId uint16, newNodeEui64 uint64, deviceUpdateStatus byte, joinDecision byte, parentOfNewNode uint16)
-	//EzspEnergyScanResultHandler(channel byte, maxRssiValue int8)
-	//EzspScanCompleteHandler(channel byte, emberStatus byte)
-	//EzspNetworkFoundHandler(networkFound *EmberZigbeeNetwork, lqi byte, rssi int8)
 }
 
 // StModuleInfo
@@ -43,7 +36,7 @@ type StMeshInfo struct {
 var ModuleInfo = StModuleInfo{ModuleType: "EM357"}
 var MeshInfo StMeshInfo
 var MeshStatusUp bool
-var Networker StNetworker
+var NcpCallbacks StNcpCallbacks
 
 func NcpGetVersion() (err error) {
 	var stackVersion uint16
@@ -237,17 +230,21 @@ func EzspMessageSentHandler(outgoingMessageType byte,
 	messageTag byte,
 	emberStatus byte,
 	message []byte) {
-	Networker.NcpMessageSentHandler(outgoingMessageType,
-		indexOrDestination,
-		apsFrame,
-		messageTag,
-		emberStatus,
-		message)
+	if NcpCallbacks.NcpMessageSentHandler != nil {
+		NcpCallbacks.NcpMessageSentHandler(outgoingMessageType,
+			indexOrDestination,
+			apsFrame,
+			messageTag,
+			emberStatus,
+			message)
+	}
 }
 
 //todo source route table 没处理
 func EzspIncomingSenderEui64Handler(senderEui64 uint64) {
-	//Networker.NcpIncomingSenderEui64Handler(senderEui64)
+	//if NcpCallbacks.NcpIncomingSenderEui64Handler != nil {
+	//	NcpCallbacks.NcpIncomingSenderEui64Handler(senderEui64)
+	//}
 }
 
 func EzspIncomingMessageHandler(incomingMessageType byte,
@@ -260,14 +257,16 @@ func EzspIncomingMessageHandler(incomingMessageType byte,
 	message []byte) {
 
 	ncpTrace("Incoming %s message from 0x%04x, Profile 0x%04x, Cluster 0x%04x: 0x%x", incomingMessageTypeToString(incomingMessageType), sender, apsFrame.ProfileId, apsFrame.ClusterId, message)
-	Networker.NcpIncomingMessageHandler(incomingMessageType,
-		apsFrame,
-		lastHopLqi,
-		lastHopRssi,
-		sender,
-		bindingIndex,
-		addressIndex,
-		message)
+	if NcpCallbacks.NcpIncomingMessageHandler != nil {
+		NcpCallbacks.NcpIncomingMessageHandler(incomingMessageType,
+			apsFrame,
+			lastHopLqi,
+			lastHopRssi,
+			sender,
+			bindingIndex,
+			addressIndex,
+			message)
+	}
 }
 
 func EzspIncomingRouteErrorHandler(emberStatus byte, target uint16) {
@@ -283,7 +282,9 @@ func EzspTrustCenterJoinHandler(newNodeId uint16,
 	deviceUpdateStatus byte,
 	joinDecision byte,
 	parentOfNewNode uint16) {
-	Networker.NcpTrustCenterJoinHandler(newNodeId, newNodeEui64, deviceUpdateStatus, joinDecision, parentOfNewNode)
+	if NcpCallbacks.NcpTrustCenterJoinHandler != nil {
+		NcpCallbacks.NcpTrustCenterJoinHandler(newNodeId, newNodeEui64, deviceUpdateStatus, joinDecision, parentOfNewNode)
+	}
 }
 
 func NcpSendMTORR() {

@@ -47,11 +47,16 @@ const (
 	C4_STATE_OFFLINE    = byte(3) //接收超时
 
 	C4_MAX_OFFLINE_TIMEOUT = 300
+
+	C4_NODE_STATUS_OFFLINE = byte(0)
+	C4_NODE_STATUS_ONLINE  = byte(1)
+	C4_NODE_STATUS_REBOOT  = byte(2)
+	C4_NODE_STATUS_DELETED = byte(3)
 )
 
 type StNode struct {
 	NodeID       uint16
-	MAC          uint64
+	Eui64        uint64
 	LastRecvTime time.Time
 	State        byte
 	Newjoin      bool
@@ -70,13 +75,21 @@ type StNode struct {
 	LQI                          byte
 }
 
+type StC4Callbacks struct {
+	C4MessageSentHandler     func(eui64 uint64, profileId uint16, clusterId uint16, localEndpoint byte, remoteEndpoint byte, message []byte, success bool)
+	C4IncomingMessageHandler func(eui64 uint64, profileId uint16, clusterId uint16, localEndpoint byte, remoteEndpoint byte, message []byte)
+	C4NodeStatusHandler      func(eui64 uint64, nodeID uint16, status byte, deviceType byte, rssi int8, lqi byte, firmwareVersion string, PS string)
+}
+
+var C4Callbacks StC4Callbacks
+
 var Nodes sync.Map
 
-func findNodeIDbyMAC(mac uint64) (nodeID uint16) {
+func findNodeIDbyEui64(eui64 uint64) (nodeID uint16) {
 	nodeID = ezsp.EMBER_NULL_NODE_ID
 	Nodes.Range(func(key, value interface{}) bool {
 		if node, ok := value.(StNode); ok {
-			if node.MAC == mac {
+			if node.Eui64 == eui64 {
 				nodeID = node.NodeID
 				return false
 			}
@@ -229,7 +242,7 @@ func (node *StNode) getState() byte {
 }
 
 func RemoveNode(node *StNode) {
-	err := ezsp.EzspRemoveDevice(node.NodeID, node.MAC, node.MAC)
+	err := ezsp.EzspRemoveDevice(node.NodeID, node.Eui64, node.Eui64)
 	if err != nil {
 		common.Log.Errorf("EzspRemoveDevice failed: %v", err)
 	}
@@ -240,9 +253,11 @@ func RemoveNode(node *StNode) {
 // RefreshHandle 收到报文发生变化，或定时刷新时调用
 func (node *StNode) RefreshHandle() {
 	if node.ToBeDeleted {
-		// todo 通知delete
+		if C4Callbacks.C4NodeStatusHandler != nil {
+			C4Callbacks.C4NodeStatusHandler(node.Eui64, node.NodeID, C4_NODE_STATUS_DELETED, node.DeviceType, node.RSSI, node.LQI, node.FirmwareVersion, node.PS)
+		}
 		Nodes.Delete(node.NodeID)
-		common.Log.Infof("node 0x%016x deleted", node.MAC)
+		common.Log.Infof("node 0x%016x deleted", node.Eui64)
 		return
 	}
 
@@ -251,20 +266,24 @@ func (node *StNode) RefreshHandle() {
 	if newState != node.State {
 		if newState == C4_STATE_ONLINE {
 			if node.State < C4_STATE_ONLINE && node.Newjoin { //初次入网，且NULL、CONNECTING变成ONLINE，要检查passport，不允许的踢出
-				if passportMatch(node.PS, fmt.Sprintf("%016x", node.MAC)) >= 0 {
-					common.Log.Infof("%s node 0x%016x join C4 network", node.PS, node.MAC)
+				if passportMatch(node.PS, fmt.Sprintf("%016x", node.Eui64)) >= 0 {
+					common.Log.Infof("%s node 0x%016x join C4 network", node.PS, node.Eui64)
 				} else {
-					common.Log.Errorf("reject node 0x%016x, remove it", node.MAC)
+					common.Log.Errorf("reject node 0x%016x, remove it", node.Eui64)
 					RemoveNode(node)
 					return
 				}
 			} else {
-				common.Log.Infof("node 0x%016x reonline", node.MAC)
+				common.Log.Infof("node 0x%016x reonline", node.Eui64)
 			}
-			// todo 通知online
+			if C4Callbacks.C4NodeStatusHandler != nil {
+				C4Callbacks.C4NodeStatusHandler(node.Eui64, node.NodeID, C4_NODE_STATUS_ONLINE, node.DeviceType, node.RSSI, node.LQI, node.FirmwareVersion, node.PS)
+			}
 		} else if newState == C4_STATE_OFFLINE {
-			common.Log.Infof("node 0x%016x offline", node.MAC)
-			// todo 通知offline
+			common.Log.Infof("node 0x%016x offline", node.Eui64)
+			if C4Callbacks.C4NodeStatusHandler != nil {
+				C4Callbacks.C4NodeStatusHandler(node.Eui64, node.NodeID, C4_NODE_STATUS_OFFLINE, node.DeviceType, node.RSSI, node.LQI, node.FirmwareVersion, node.PS)
+			}
 		}
 		node.State = newState
 	}
@@ -370,9 +389,9 @@ func C4SetPermission(duration byte, passports []*StPassport) (err error) {
 }
 
 func C4Init() {
-	ezsp.Networker.NcpTrustCenterJoinHandler = TrustCenterJoinHandler
-	ezsp.Networker.NcpMessageSentHandler = MessageSentHandler
-	ezsp.Networker.NcpIncomingMessageHandler = IncomingMessageHandler
+	ezsp.NcpCallbacks.NcpTrustCenterJoinHandler = TrustCenterJoinHandler
+	ezsp.NcpCallbacks.NcpMessageSentHandler = MessageSentHandler
+	ezsp.NcpCallbacks.NcpIncomingMessageHandler = IncomingMessageHandler
 }
 
 func TrustCenterJoinHandler(newNodeId uint16,
@@ -391,7 +410,7 @@ func TrustCenterJoinHandler(newNodeId uint16,
 		}
 		node.Newjoin = false //已经在node表里的，不认为Newjoin
 	} else {
-		node = StNode{NodeID: newNodeId, MAC: newNodeEui64, LastRecvTime: now}
+		node = StNode{NodeID: newNodeId, Eui64: newNodeEui64, LastRecvTime: now}
 		node.Newjoin = true
 	}
 
@@ -417,7 +436,26 @@ func MessageSentHandler(outgoingMessageType byte,
 	messageTag byte,
 	emberStatus byte,
 	message []byte) {
-
+	if apsFrame.ProfileId == C4_PROFILE || apsFrame.ProfileId == ZDO_PROFILE {
+		return
+	}
+	if messageTag == 0 { //应用层不关心时tag==0
+		return
+	}
+	var node StNode
+	value, ok := Nodes.Load(indexOrDestination) // 从map中加载
+	if ok {
+		if node, ok = value.(StNode); !ok {
+			common.Log.Errorf("Nodes map unsupported type")
+			return
+		}
+	} else {
+		common.Log.Errorf("0x%04x not found in Nodes map", indexOrDestination)
+		return
+	}
+	if C4Callbacks.C4MessageSentHandler != nil {
+		C4Callbacks.C4MessageSentHandler(node.Eui64, apsFrame.ProfileId, apsFrame.ClusterId, apsFrame.SourceEndpoint, apsFrame.DestinationEndpoint, message, emberStatus == ezsp.EMBER_SUCCESS)
+	}
 }
 func IncomingMessageHandler(incomingMessageType byte,
 	apsFrame *ezsp.EmberApsFrame,
@@ -443,7 +481,7 @@ func IncomingMessageHandler(incomingMessageType byte,
 			return
 		}
 	} else {
-		node = StNode{NodeID: sender, MAC: eui64, LastRecvTime: now}
+		node = StNode{NodeID: sender, Eui64: eui64, LastRecvTime: now}
 	}
 
 	if apsFrame.ProfileId == C4_PROFILE {
@@ -477,7 +515,9 @@ func IncomingMessageHandler(incomingMessageType byte,
 	} else if apsFrame.ProfileId == ZDO_PROFILE {
 
 	} else {
-		//todo 通知
+		if C4Callbacks.C4IncomingMessageHandler != nil {
+			C4Callbacks.C4IncomingMessageHandler(node.Eui64, apsFrame.ProfileId, apsFrame.ClusterId, apsFrame.DestinationEndpoint, apsFrame.SourceEndpoint, message)
+		}
 	}
 }
 
@@ -491,7 +531,7 @@ func nextSequence() byte {
 	return unicastTagSequence
 }
 
-func C4SendUnicast(mac uint64,
+func C4SendUnicast(eui64 uint64,
 	profileId uint16,
 	clusterId uint16,
 	localEndpoint byte,
@@ -499,7 +539,7 @@ func C4SendUnicast(mac uint64,
 	message []byte,
 	needConfirm bool) {
 
-	nodeID := findNodeIDbyMAC(mac)
+	nodeID := findNodeIDbyEui64(eui64)
 	var apsFrame ezsp.EmberApsFrame
 	apsFrame.ProfileId = profileId
 	apsFrame.ClusterId = clusterId

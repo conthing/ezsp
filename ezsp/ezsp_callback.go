@@ -6,6 +6,19 @@ import (
 	"github.com/conthing/utils/common"
 )
 
+type StEzspCallbacks struct {
+	EzspStackStatusHandler         func(emberStatus byte)
+	EzspMessageSentHandler         func(outgoingMessageType byte, indexOrDestination uint16, apsFrame *EmberApsFrame, messageTag byte, emberStatus byte, message []byte)
+	EzspIncomingSenderEui64Handler func(senderEui64 uint64)
+	EzspIncomingMessageHandler     func(incomingMessageType byte, apsFrame *EmberApsFrame, lastHopLqi byte, lastHopRssi int8, sender uint16, bindingIndex byte, addressIndex byte, message []byte)
+	EzspIncomingRouteErrorHandler  func(emberStatus byte, target uint16)
+	EzspIncomingRouteRecordHandler func(source uint16, sourceEui uint64, lastHopLqi byte, lastHopRssi int8, relay []uint16)
+	EzspTrustCenterJoinHandler     func(newNodeId uint16, newNodeEui64 uint64, deviceUpdateStatus byte, joinDecision byte, parentOfNewNode uint16)
+	EzspEnergyScanResultHandler    func(channel byte, maxRssiValue int8)
+	EzspScanCompleteHandler        func(channel byte, emberStatus byte)
+	EzspNetworkFoundHandler        func(networkFound *EmberZigbeeNetwork, lqi byte, rssi int8)
+}
+
 func EzspCallbackDispatch(cb *EzspFrame) {
 
 	if cb == nil {
