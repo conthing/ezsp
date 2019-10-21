@@ -99,17 +99,27 @@ func findNodeIDbyEui64(eui64 uint64) (nodeID uint16) {
 	return
 }
 
+var MTORRIntervalTime = [...]time.Duration{10, 30, 60, 300}
+var MTORRIntervalOffset = 0
+
 func C4Tick() {
 	select {
 	case cb := <-ezsp.CallbackCh:
 		ezsp.EzspCallbackDispatch(cb)
-	case <-time.After(time.Millisecond * 3000):
+	case <-time.After(time.Second * 3):
 		Nodes.Range(func(key, value interface{}) bool {
 			if node, ok := value.(StNode); ok {
 				node.RefreshHandle()
 			}
 			return true
 		})
+	case <-time.After(time.Second * MTORRIntervalTime[MTORRIntervalOffset]):
+		if ezsp.MeshStatusUp {
+			ezsp.EzspSendManyToOneRouteRequest(ezsp.EMBER_HIGH_RAM_CONCENTRATOR, 0)
+			MTORRIntervalOffset++
+		} else {
+			MTORRIntervalOffset = 0
+		}
 	}
 }
 
@@ -241,7 +251,7 @@ func (node *StNode) getState() byte {
 	}
 }
 
-func RemoveNode(node *StNode) {
+func removeDeviceAndNode(node *StNode) {
 	err := ezsp.EzspRemoveDevice(node.NodeID, node.Eui64, node.Eui64)
 	if err != nil {
 		common.Log.Errorf("EzspRemoveDevice failed: %v", err)
@@ -270,7 +280,7 @@ func (node *StNode) RefreshHandle() {
 					common.Log.Infof("%s node 0x%016x join C4 network", node.PS, node.Eui64)
 				} else {
 					common.Log.Errorf("reject node 0x%016x, remove it", node.Eui64)
-					RemoveNode(node)
+					removeDeviceAndNode(node)
 					return
 				}
 			} else {
@@ -290,9 +300,15 @@ func (node *StNode) RefreshHandle() {
 	Nodes.Store(node.NodeID, *node) // map中存储
 }
 
+// StPermission 发送SetPermission请求时参数的结构
+type StPermission struct {
+	Duration  byte          `json:"duration"`
+	Passports []*StPassport `json:"passports"`
+}
+
 type StPassport struct {
-	PS  string
-	MAC string
+	PS  string `json:"ps"`
+	MAC string `json:"mac"`
 }
 
 var allPassPorts []*StPassport
@@ -358,14 +374,17 @@ func isPassportMACValid(mac string) bool {
 	return true
 }
 
-func C4SetPermission(duration byte, passports []*StPassport) (err error) {
-
-	if passports == nil {
+func C4SetPermission(permission *StPermission) (err error) {
+	if permission == nil {
+		err = fmt.Errorf("C4SetPassports permission=NULL")
+		return
+	}
+	if permission.Passports == nil || len(permission.Passports) == 0 {
 		err = fmt.Errorf("C4SetPassports passports=NULL")
 		return
 	}
 	common.Log.Debugf("permision to ...")
-	for i, p := range passports {
+	for i, p := range permission.Passports {
 		if p != nil {
 			common.Log.Debugf("%d: MAC=%s PS=%s", i, p.MAC, p.PS)
 			if p.PS == "" {
@@ -378,9 +397,9 @@ func C4SetPermission(duration byte, passports []*StPassport) (err error) {
 			}
 		}
 	}
-	allPassPorts = passports
+	allPassPorts = permission.Passports
 
-	err = ezsp.EzspPermitJoining(duration)
+	err = ezsp.EzspPermitJoining(permission.Duration)
 	if err != nil {
 		err = fmt.Errorf("EzspPermitJoining failed: %v", err)
 	}
@@ -531,15 +550,14 @@ func nextSequence() byte {
 	return unicastTagSequence
 }
 
-func C4SendUnicast(eui64 uint64,
-	profileId uint16,
-	clusterId uint16,
-	localEndpoint byte,
-	remoteEndpoint byte,
-	message []byte,
-	needConfirm bool) {
+func C4SendUnicast(eui64 uint64, profileId uint16, clusterId uint16,
+	localEndpoint byte, remoteEndpoint byte,
+	message []byte, needConfirm bool) (err error) {
 
 	nodeID := findNodeIDbyEui64(eui64)
+	if nodeID == ezsp.EMBER_NULL_NODE_ID {
+		return fmt.Errorf("unknow EUI64 %016x", eui64)
+	}
 	var apsFrame ezsp.EmberApsFrame
 	apsFrame.ProfileId = profileId
 	apsFrame.ClusterId = clusterId
@@ -551,7 +569,9 @@ func C4SendUnicast(eui64 uint64,
 		tag = nextSequence()
 	}
 
-	ezsp.EzspSendUnicast(ezsp.EMBER_OUTGOING_DIRECT, nodeID, &apsFrame, tag, message)
+	// todo 设置路由表
+	_, err = ezsp.EzspSendUnicast(ezsp.EMBER_OUTGOING_DIRECT, nodeID, &apsFrame, tag, message)
+	return
 }
 
 func getSendOptions(destination uint16, profileId uint16, clusterId uint16, messageLength byte) (options uint16) {
@@ -572,4 +592,38 @@ func getSendOptions(destination uint16, profileId uint16, clusterId uint16, mess
 		}
 	}
 	return
+}
+
+func RemoveDevice(eui64 uint64) (err error) {
+	nodeID := findNodeIDbyEui64(eui64)
+	if nodeID == ezsp.EMBER_NULL_NODE_ID {
+		return fmt.Errorf("unknow EUI64 %016x", eui64)
+	}
+	err = ezsp.EzspRemoveDevice(nodeID, eui64, eui64)
+	if err != nil {
+		common.Log.Errorf("EzspRemoveDevice failed: %v", err)
+	}
+	return
+}
+
+func C4RemoveNetwork() (err error) {
+	notEmpty := false
+	Nodes.Range(func(key, value interface{}) bool {
+		notEmpty = true
+		return false
+	})
+	if notEmpty {
+		err = fmt.Errorf("Node map not empty")
+		return
+	}
+	err = ezsp.EzspLeaveNetwork()
+	return
+}
+
+func C4SetRadioChannel(channel byte) (err error) {
+	return ezsp.EzspSetRadioChannel(channel)
+}
+
+func C4FormNetwork(radioChannel byte) (err error) {
+	return ezsp.NcpFormNetwork(radioChannel)
 }

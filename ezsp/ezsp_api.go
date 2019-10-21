@@ -667,6 +667,44 @@ func EzspSendUnicast(outgoingMessageType byte, indexOrDestination uint16, apsFra
 	return
 }
 
+func EzspLeaveNetwork() (err error) {
+	response, err := EzspFrameSend(EZSP_LEAVE_NETWORK, []byte{})
+	if err == nil {
+		err = generalResponseError(response, EZSP_LEAVE_NETWORK)
+		if err == nil {
+			err = generalResponseLengthEqual(response, EZSP_LEAVE_NETWORK, 1)
+			if err == nil {
+				emberStatus := response.Data[0]
+				if emberStatus != EMBER_SUCCESS {
+					err = EmberError{emberStatus, "EzspLeaveNetwork()"}
+					return
+				}
+				ezspApiTrace("EzspLeaveNetwork()")
+			}
+		}
+	}
+	return
+}
+
+func EzspSetRadioChannel(channel byte) (err error) {
+	response, err := EzspFrameSend(EZSP_SET_RADIO_CHANNEL, []byte{channel})
+	if err == nil {
+		err = generalResponseError(response, EZSP_SET_RADIO_CHANNEL)
+		if err == nil {
+			err = generalResponseLengthEqual(response, EZSP_SET_RADIO_CHANNEL, 1)
+			if err == nil {
+				emberStatus := response.Data[0]
+				if emberStatus != EMBER_SUCCESS {
+					err = EmberError{emberStatus, "EzspSetRadioChannel()"}
+					return
+				}
+				ezspApiTrace("EzspSetRadioChannel(%d)", channel)
+			}
+		}
+	}
+	return
+}
+
 // EzspGetValue API
 
 type EmberVersion struct {

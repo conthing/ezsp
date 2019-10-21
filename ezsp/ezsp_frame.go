@@ -15,6 +15,7 @@ type EzspFrame struct {
 	Data     []byte
 }
 
+var mutex sync.Mutex
 var sequence byte
 var seqMutex sync.Mutex
 
@@ -138,6 +139,10 @@ func AshRecvImp(data []byte) error {
 }
 
 func EzspFrameSend(frmID byte, data []byte) (*EzspFrame, error) {
+	mutex.Lock()
+	defer func() {
+		mutex.Unlock()
+	}()
 	seq := getSequence()
 	ashFrm := []byte{seq, 0, frmID}
 	if data != nil {

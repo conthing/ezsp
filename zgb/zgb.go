@@ -14,6 +14,7 @@ func TickRunning(_ chan error) {
 	if err != nil {
 		common.Log.Errorf("AshReset failed: %v", err)
 	} else {
+		c4.C4Init()
 		ezsp.EzspFrameInitVariables() // 有些变量在ASH的接收线程里会被使用
 		ash.InitVariables()           // 上层的变量初始化完成后，最后调用ASH的变量初始化
 		common.Log.Info("AshReset OK")
@@ -46,8 +47,6 @@ func TickRunning(_ chan error) {
 	}
 	common.Log.Infof("NCP EUI64 = %016x", eui64)
 
-	c4.C4Init()
-
 	//err = ezsp.NcpFormNetwork(0xff)
 	//if err != nil {
 	//	common.Log.Errorf("NcpFormNetwork failed: %v", err)
@@ -60,7 +59,7 @@ func TickRunning(_ chan error) {
 	}
 	common.Log.Infof("EzspNetworkInit OK")
 
-	//err = c4.C4SetPermission(60, []*c4.StPassport{&c4.StPassport{PS: "inSona:IN-C01-WR-4", MAC: "xxxxxxxxxxxxce73"}})
+	//err = c4.C4SetPermission(&c4.StPermission{60, []*c4.StPassport{&c4.StPassport{PS: "inSona:IN-C01-WR-4", MAC: "xxxxxxxxxxxxce73"}}})
 	//if err != nil {
 	//	common.Log.Errorf("C4SetPermission failed: %v", err)
 	//}
@@ -70,6 +69,3 @@ func TickRunning(_ chan error) {
 		c4.C4Tick()
 	}
 }
-
-//func getModuleInfo() (*models.StModuleInfo, error) {
-//}
