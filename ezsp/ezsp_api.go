@@ -535,7 +535,7 @@ func EzspLookupEui64ByNodeId(nodeId uint16) (eui64 uint64, err error) {
 				emberStatus := response.Data[0]
 				eui64 = binary.LittleEndian.Uint64(response.Data[1:])
 				if emberStatus != EMBER_SUCCESS {
-					err = EmberError{emberStatus, fmt.Sprintf("EzspLookupEui64ByNodeId(%04x) invalid", nodeId)}
+					err = EmberError{emberStatus, fmt.Sprintf("EzspLookupEui64ByNodeId(%04x)", nodeId)}
 					return
 				}
 				ezspApiTrace("EzspLookupEui64ByNodeId(%04x) = 0x%016x", nodeId, eui64)

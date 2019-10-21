@@ -41,6 +41,13 @@ func AshSerialClose() {
 	}
 }
 
+func AshSerialFlush() {
+	if ashSerial != nil {
+		data := make([]byte, 128)
+		ashSerial.Read(data)
+	}
+}
+
 // AshSerialRecv 串口接收
 func AshSerialRecv() error {
 	if ashSerial == nil {

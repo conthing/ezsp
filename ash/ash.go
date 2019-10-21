@@ -364,6 +364,7 @@ func ashSendNakFrame() error {
 
 // ashTransceiver 收发任务
 func ashTransceiver(errChan chan error) {
+	AshSerialFlush()
 	for {
 		resent := false
 		acknaksent := false //一次循环发送了ACK就不发DAT了

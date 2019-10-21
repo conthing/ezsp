@@ -115,6 +115,7 @@ func C4Tick() {
 		})
 	case <-time.After(time.Second * MTORRIntervalTime[MTORRIntervalOffset]):
 		if ezsp.MeshStatusUp {
+			common.Log.Debugf("MTORR")
 			ezsp.EzspSendManyToOneRouteRequest(ezsp.EMBER_HIGH_RAM_CONCENTRATOR, 0)
 			MTORRIntervalOffset++
 		} else {
@@ -411,6 +412,8 @@ func C4Init() {
 	ezsp.NcpCallbacks.NcpTrustCenterJoinHandler = TrustCenterJoinHandler
 	ezsp.NcpCallbacks.NcpMessageSentHandler = MessageSentHandler
 	ezsp.NcpCallbacks.NcpIncomingMessageHandler = IncomingMessageHandler
+	ezsp.NcpCallbacks.NcpIncomingSenderEui64Handler = IncomingSenderEui64Handler
+
 }
 
 func TrustCenterJoinHandler(newNodeId uint16,
@@ -476,6 +479,28 @@ func MessageSentHandler(outgoingMessageType byte,
 		C4Callbacks.C4MessageSentHandler(node.Eui64, apsFrame.ProfileId, apsFrame.ClusterId, apsFrame.SourceEndpoint, apsFrame.DestinationEndpoint, message, emberStatus == ezsp.EMBER_SUCCESS)
 	}
 }
+
+func IncomingSenderEui64Handler(eui64 uint64) {
+	now := time.Now()
+	nodeID, err := ezsp.EzspLookupNodeIdByEui64(eui64)
+	if err != nil {
+		common.Log.Errorf("Incoming message lookup nodeID failed: %v", err)
+		return
+	}
+	var node StNode
+	value, ok := Nodes.Load(nodeID) // 从map中加载
+	if ok {
+		if node, ok = value.(StNode); !ok {
+			common.Log.Errorf("Nodes map unsupported type")
+			return
+		}
+		node.Eui64 = eui64
+	} else {
+		node = StNode{NodeID: nodeID, Eui64: eui64, LastRecvTime: now}
+	}
+	Nodes.Store(node.NodeID, node) // map中存储
+}
+
 func IncomingMessageHandler(incomingMessageType byte,
 	apsFrame *ezsp.EmberApsFrame,
 	lastHopLqi byte,
@@ -486,11 +511,6 @@ func IncomingMessageHandler(incomingMessageType byte,
 	message []byte) {
 
 	now := time.Now()
-	eui64, err := ezsp.EzspLookupEui64ByNodeId(sender)
-	if err != nil {
-		common.Log.Errorf("Incoming message lookup eui64 failed: %v", err)
-		return
-	}
 
 	var node StNode
 	value, ok := Nodes.Load(sender) // 从map中加载
@@ -500,6 +520,12 @@ func IncomingMessageHandler(incomingMessageType byte,
 			return
 		}
 	} else {
+		eui64, err := ezsp.EzspLookupEui64ByNodeId(sender)
+		if err != nil {
+			common.Log.Errorf("Incoming message lookup eui64 failed: %v", err)
+			return
+		}
+
 		node = StNode{NodeID: sender, Eui64: eui64, LastRecvTime: now}
 	}
 
@@ -535,7 +561,11 @@ func IncomingMessageHandler(incomingMessageType byte,
 
 	} else {
 		if C4Callbacks.C4IncomingMessageHandler != nil {
-			C4Callbacks.C4IncomingMessageHandler(node.Eui64, apsFrame.ProfileId, apsFrame.ClusterId, apsFrame.DestinationEndpoint, apsFrame.SourceEndpoint, message)
+			if node.Eui64 != 0 {
+				C4Callbacks.C4IncomingMessageHandler(node.Eui64, apsFrame.ProfileId, apsFrame.ClusterId, apsFrame.DestinationEndpoint, apsFrame.SourceEndpoint, message)
+			} else {
+				common.Log.Errorf("recv msg from NodeID 0x%04x without EUI64", node.NodeID)
+			}
 		}
 	}
 }

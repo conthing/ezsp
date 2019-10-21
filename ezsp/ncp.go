@@ -13,9 +13,10 @@ func ncpTrace(format string, v ...interface{}) {
 }
 
 type StNcpCallbacks struct {
-	NcpMessageSentHandler     func(outgoingMessageType byte, indexOrDestination uint16, apsFrame *EmberApsFrame, messageTag byte, emberStatus byte, message []byte)
-	NcpIncomingMessageHandler func(incomingMessageType byte, apsFrame *EmberApsFrame, lastHopLqi byte, lastHopRssi int8, sender uint16, bindingIndex byte, addressIndex byte, message []byte)
-	NcpTrustCenterJoinHandler func(newNodeId uint16, newNodeEui64 uint64, deviceUpdateStatus byte, joinDecision byte, parentOfNewNode uint16)
+	NcpMessageSentHandler         func(outgoingMessageType byte, indexOrDestination uint16, apsFrame *EmberApsFrame, messageTag byte, emberStatus byte, message []byte)
+	NcpIncomingSenderEui64Handler func(senderEui64 uint64)
+	NcpIncomingMessageHandler     func(incomingMessageType byte, apsFrame *EmberApsFrame, lastHopLqi byte, lastHopRssi int8, sender uint16, bindingIndex byte, addressIndex byte, message []byte)
+	NcpTrustCenterJoinHandler     func(newNodeId uint16, newNodeEui64 uint64, deviceUpdateStatus byte, joinDecision byte, parentOfNewNode uint16)
 }
 
 // StModuleInfo
@@ -242,9 +243,9 @@ func EzspMessageSentHandler(outgoingMessageType byte,
 
 //todo source route table 没处理
 func EzspIncomingSenderEui64Handler(senderEui64 uint64) {
-	//if NcpCallbacks.NcpIncomingSenderEui64Handler != nil {
-	//	NcpCallbacks.NcpIncomingSenderEui64Handler(senderEui64)
-	//}
+	if NcpCallbacks.NcpIncomingSenderEui64Handler != nil {
+		NcpCallbacks.NcpIncomingSenderEui64Handler(senderEui64)
+	}
 }
 
 func EzspIncomingMessageHandler(incomingMessageType byte,
