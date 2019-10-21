@@ -8,7 +8,8 @@ import (
 )
 
 //TickRunning 定时运行tick
-func TickRunning(_ chan error) {
+func TickRunning(errs chan error) {
+	ash.AshStartTransceiver(ezsp.AshRecvImp, errs)
 
 	err := ash.AshReset()
 	if err != nil {

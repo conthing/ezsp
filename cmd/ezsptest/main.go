@@ -8,7 +8,6 @@ import (
 	"syscall"
 
 	"github.com/conthing/ezsp/ash"
-	"github.com/conthing/ezsp/ezsp"
 	"github.com/conthing/ezsp/zgb"
 	"github.com/conthing/utils/common"
 )
@@ -66,7 +65,6 @@ func main() {
 	errs := make(chan error, 3)
 
 	listenForInterrupt(errs)
-	ash.AshStartTransceiver(ezsp.AshRecvImp, errs)
 	//startHTTPServer(errs, cfg.HTTP.Port)
 	startTickRunning(errs)
 
