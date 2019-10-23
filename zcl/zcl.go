@@ -121,7 +121,7 @@ const (
 )
 
 type ZclContext struct {
-	LocalEdp  byte //todo 改成local 和 remote
+	LocalEdp  byte
 	RemoteEdp byte
 	Context   interface{}
 

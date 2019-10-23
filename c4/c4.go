@@ -280,7 +280,7 @@ func (node *StNode) RefreshHandle() {
 			C4Callbacks.C4NodeStatusHandler(node.Eui64, node.NodeID, C4_NODE_STATUS_DELETED, node.DeviceType, node.RSSI, node.LQI, node.FirmwareVersion, node.PS)
 		}
 		Nodes.Delete(node.NodeID)
-		common.Log.Infof("node 0x%016x deleted", node.Eui64)
+		common.Log.Infof("node map delete 0x%016x", node.Eui64)
 		return
 	}
 
@@ -388,7 +388,7 @@ func isPassportMACValid(mac string) bool {
 }
 
 func SetPermission(permission *StPermission) (err error) {
-	common.Log.Debugf("SetPermission()")
+	common.Log.Debugf("SetPermission %+v", *permission)
 	if permission == nil {
 		err = fmt.Errorf("C4SetPassports permission=NULL")
 		return
