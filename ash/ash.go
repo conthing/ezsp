@@ -33,8 +33,8 @@ var ashRecvErrorFrame []byte
 var ashResendTime *time.Time // todo 这个时间使用有问题 send 和 resend 同时存在时
 var ashResendCnt byte
 
-var rxIndexNext byte          /*下一个接收报文的index，自己报文中的ackNum*/
-var rxIndexNextSent = byte(7) /*已经发送出去的ackNum*/
+var rxIndexNext byte     /*下一个接收报文的index，自己报文中的ackNum*/
+var rxIndexNextSent byte //= byte(7) /*已经发送出去的ackNum*/
 
 var rxbuffer [8][]byte //todo 发送失败怎么清空
 var rxPutPtr byte
@@ -69,7 +69,7 @@ func InitVariables() {
 	ashResendCnt = 0
 
 	rxIndexNext = 0
-	rxIndexNextSent = byte(7) /*已经发送出去的ackNum*/
+	rxIndexNextSent = 0 //byte(7) /*已经发送出去的ackNum*/
 
 	for i := range rxbuffer {
 		rxbuffer[i] = nil
@@ -107,9 +107,13 @@ func dataFrmPseudoRandom(data []byte) {
 	}
 }
 
-func getAckNumForSend() byte { /*发送报文中的ackNum字段，调用此函数后才算ACK过*/
+func getAckNumForData() byte { /*host不能通过DAT进行ACK*/
 	//rxIndexNextSent = rxIndexNext
-	return rxIndexNext
+	return rxIndexNextSent
+}
+func getAckNumForAck() byte { /*发送报文中的ackNum字段，调用此函数后才算ACK过*/ /*host不能通过DAT进行ACK*/
+	//rxIndexNextSent = rxIndexNext
+	return rxIndexNext //inc(rxIndexNextSent)
 }
 
 func needAckFrame() bool {
@@ -126,7 +130,7 @@ func sendReady() bool {
 func getSendBuffer() (ashDataFrame []byte) {
 	data := txbuffer[txIndexNext]
 	if data != nil {
-		control := byte(ASH_CONTROLBYTE_DATA | byte(txIndexNext<<4) | getAckNumForSend())
+		control := byte(ASH_CONTROLBYTE_DATA | byte(txIndexNext<<4) | getAckNumForData())
 		ashDataFrame = []byte{control}
 		ashDataFrame = append(ashDataFrame, data...)
 		txIndexNext = inc(txIndexNext)
@@ -139,7 +143,7 @@ func getResendBuffer() (ashDataFrame []byte) {
 	if smallthan(txIndexConfirming, txIndexNext) {
 		data := txbuffer[txIndexConfirming]
 		if data != nil {
-			control := byte(ASH_CONTROLBYTE_DATA | byte(txIndexConfirming<<4) | getAckNumForSend() | ASH_CONTROLBYTE_RETX)
+			control := byte(ASH_CONTROLBYTE_DATA | byte(txIndexConfirming<<4) | getAckNumForData() | ASH_CONTROLBYTE_RETX)
 			ashDataFrame = []byte{control}
 			ashDataFrame = append(ashDataFrame, data...)
 			return
@@ -352,12 +356,12 @@ func ashSendResetFrame() error {
 	return ashSendFrame(frame)
 }
 func ashSendAckFrame() error {
-	frame := []byte{ASH_CONTROLBYTE_ACK | getAckNumForSend()}
+	frame := []byte{ASH_CONTROLBYTE_ACK | getAckNumForAck()}
 	ashTrace("ASH send ACK frame > 0x%x", frame)
 	return ashSendFrame(frame)
 }
 func ashSendNakFrame() error {
-	frame := []byte{ASH_CONTROLBYTE_NAK | getAckNumForSend()}
+	frame := []byte{ASH_CONTROLBYTE_NAK | getAckNumForData()}
 	ashTrace("ASH send NAK frame > 0x%x", frame)
 	return ashSendFrame(frame)
 }

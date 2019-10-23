@@ -199,7 +199,7 @@ func NcpPrintAddressTable() {
 	var active bool
 	var nodeID uint16
 	var eui64 uint64
-	for i := byte(0); i < 4; i++ {
+	for i := byte(0); i < 64; i++ {
 		active, err = EzspAddressTableEntryIsActive(i)
 		if err != nil {
 			common.Log.Errorf("EzspAddressTableEntryIsActive(%d) failed: %v", i, err)

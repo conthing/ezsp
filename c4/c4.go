@@ -387,7 +387,8 @@ func isPassportMACValid(mac string) bool {
 	return true
 }
 
-func C4SetPermission(permission *StPermission) (err error) {
+func SetPermission(permission *StPermission) (err error) {
+	common.Log.Debugf("SetPermission()")
 	if permission == nil {
 		err = fmt.Errorf("C4SetPassports permission=NULL")
 		return
@@ -608,9 +609,10 @@ func nextSequence() byte {
 	return unicastTagSequence
 }
 
-func C4SendUnicast(eui64 uint64, profileId uint16, clusterId uint16,
+func SendUnicast(eui64 uint64, profileId uint16, clusterId uint16,
 	localEndpoint byte, remoteEndpoint byte,
 	message []byte, needConfirm bool) (err error) {
+	common.Log.Debugf("SendUnicast %016x ...", eui64)
 
 	nodeID := findNodeIDbyEui64(eui64)
 	if nodeID == ezsp.EMBER_NULL_NODE_ID {
@@ -653,6 +655,7 @@ func getSendOptions(destination uint16, profileId uint16, clusterId uint16, mess
 }
 
 func RemoveDevice(eui64 uint64) (err error) {
+	common.Log.Debugf("RemoveDevice %016x", eui64)
 	nodeID := findNodeIDbyEui64(eui64)
 	if nodeID == ezsp.EMBER_NULL_NODE_ID {
 		return fmt.Errorf("unknow EUI64 %016x", eui64)
@@ -664,7 +667,8 @@ func RemoveDevice(eui64 uint64) (err error) {
 	return
 }
 
-func C4RemoveNetwork() (err error) {
+func RemoveNetwork() (err error) {
+	common.Log.Debugf("RemoveNetwork()")
 	notEmpty := false
 	Nodes.Range(func(key, value interface{}) bool {
 		notEmpty = true
@@ -678,10 +682,12 @@ func C4RemoveNetwork() (err error) {
 	return
 }
 
-func C4SetRadioChannel(channel byte) (err error) {
+func SetRadioChannel(channel byte) (err error) {
+	common.Log.Debugf("SetRadioChannel(%d)", channel)
 	return ezsp.EzspSetRadioChannel(channel)
 }
 
-func C4FormNetwork(radioChannel byte) (err error) {
+func FormNetwork(radioChannel byte) (err error) {
+	common.Log.Debugf("FormNetwork(%d)", radioChannel)
 	return ezsp.NcpFormNetwork(radioChannel)
 }
