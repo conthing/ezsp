@@ -1855,6 +1855,15 @@ const (
 
 	EMBER_NULL_NODE_ID = uint16(0xffff)
 
+	/**
+	 * @brief A distinguished network ID that will never be assigned
+	 * to any node.  This value is used when getting the remote node ID
+	 * from the address or binding tables.  It indicates that the address
+	 * or binding table entry is currently in use but the node ID
+	 * corresponding to the EUI64 in the table is currently unknown.
+	 */
+	EMBER_UNKNOWN_NODE_ID = uint16(0xFFFD)
+
 	/** Broadcast to all routers. */
 	EMBER_BROADCAST_ADDRESS = uint16(0xFFFC)
 	/** Broadcast to all non-sleepy devices. */

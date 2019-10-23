@@ -194,6 +194,28 @@ func NcpGetAndIncRebootCnt() (rebootCnt uint16, err error) {
 	return
 }
 
+func NcpPrintAddressTable() {
+	var err error
+	var active bool
+	var nodeID uint16
+	var eui64 uint64
+	for i := byte(0); i < 4; i++ {
+		active, err = EzspAddressTableEntryIsActive(i)
+		if err != nil {
+			common.Log.Errorf("EzspAddressTableEntryIsActive(%d) failed: %v", i, err)
+		}
+		nodeID, err = EzspGetAddressTableRemoteNodeId(i)
+		if err != nil {
+			common.Log.Errorf("EzspGetAddressTableRemoteNodeId(%d) failed: %v", i, err)
+		}
+		eui64, err = EzspGetAddressTableRemoteEui64(i)
+		if err != nil {
+			common.Log.Errorf("EzspGetAddressTableRemoteEui64(%d) failed: %v", i, err)
+		}
+		common.Log.Infof("address table %d active=%v nodeID=0x%04x EUI64=%016x", i, active, nodeID, eui64)
+	}
+}
+
 // Called when the stack status changes, usually as a result of an
 // attempt to form, join, or leave a network.
 func EzspStackStatusHandler(emberStatus byte) {

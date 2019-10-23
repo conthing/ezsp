@@ -557,10 +557,55 @@ func EzspLookupNodeIdByEui64(eui64 uint64) (nodeId uint16, err error) {
 			if err == nil {
 				nodeId = binary.LittleEndian.Uint16(response.Data)
 				if nodeId == EMBER_NULL_NODE_ID {
-					err = fmt.Errorf("EzspLookupNodeIdByEui64(%016x) invalid", eui64)
+					err = fmt.Errorf("EzspLookupNodeIdByEui64(%016x) failed", eui64)
 					return
 				}
 				ezspApiTrace("EzspLookupNodeIdByEui64(%016x) = 0x%04x", eui64, nodeId)
+			}
+		}
+	}
+	return
+}
+
+func EzspAddressTableEntryIsActive(addressTableIndex byte) (active bool, err error) {
+	response, err := EzspFrameSend(EZSP_ADDRESS_TABLE_ENTRY_IS_ACTIVE, []byte{addressTableIndex})
+	if err == nil {
+		err = generalResponseError(response, EZSP_ADDRESS_TABLE_ENTRY_IS_ACTIVE)
+		if err == nil {
+			err = generalResponseLengthEqual(response, EZSP_ADDRESS_TABLE_ENTRY_IS_ACTIVE, 1)
+			if err == nil {
+				active = (response.Data[0] != 0)
+				ezspApiTrace("EzspAddressTableEntryIsActive(%d) = %v", addressTableIndex, active)
+			}
+		}
+	}
+	return
+}
+
+func EzspGetAddressTableRemoteEui64(addressTableIndex byte) (eui64 uint64, err error) {
+	response, err := EzspFrameSend(EZSP_GET_ADDRESS_TABLE_REMOTE_EUI64, []byte{addressTableIndex})
+	if err == nil {
+		err = generalResponseError(response, EZSP_GET_ADDRESS_TABLE_REMOTE_EUI64)
+		if err == nil {
+			err = generalResponseLengthEqual(response, EZSP_GET_ADDRESS_TABLE_REMOTE_EUI64, 8)
+			if err == nil {
+				eui64 = binary.LittleEndian.Uint64(response.Data)
+				ezspApiTrace("EzspGetAddressTableRemoteEui64(%d) = 0x%016x", addressTableIndex, eui64)
+			}
+		}
+	}
+	return
+}
+
+func EzspGetAddressTableRemoteNodeId(addressTableIndex byte) (nodeID uint16, err error) {
+	response, err := EzspFrameSend(EZSP_GET_ADDRESS_TABLE_REMOTE_NODE_ID, []byte{addressTableIndex})
+	if err == nil {
+		err = generalResponseError(response, EZSP_GET_ADDRESS_TABLE_REMOTE_NODE_ID)
+		if err == nil {
+			err = generalResponseLengthEqual(response, EZSP_GET_ADDRESS_TABLE_REMOTE_NODE_ID, 2)
+			if err == nil {
+				nodeID = binary.LittleEndian.Uint16(response.Data)
+				ezspApiTrace("EzspGetAddressTableRemoteNodeId(%d) = 0x%04x", addressTableIndex, nodeID)
 			}
 		}
 	}

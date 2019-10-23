@@ -99,8 +99,9 @@ func findNodeIDbyEui64(eui64 uint64) (nodeID uint16) {
 	return
 }
 
-var MTORRIntervalTime = [...]time.Duration{10, 30, 60, 300}
+var MTORRIntervalTime = [...]int{9, 30, 60, 300}
 var MTORRIntervalOffset = 0
+var MTORRIntervalCnt = 0
 
 func C4Tick() {
 	select {
@@ -113,13 +114,24 @@ func C4Tick() {
 			}
 			return true
 		})
-	case <-time.After(time.Second * MTORRIntervalTime[MTORRIntervalOffset]):
-		if ezsp.MeshStatusUp {
-			common.Log.Debugf("MTORR")
-			ezsp.EzspSendManyToOneRouteRequest(ezsp.EMBER_HIGH_RAM_CONCENTRATOR, 0)
-			MTORRIntervalOffset++
+		if MTORRIntervalCnt == 0 { //使用两个After有问题
+			MTORRIntervalCnt = MTORRIntervalTime[MTORRIntervalOffset] / 3
+			if ezsp.MeshStatusUp {
+				if MTORRIntervalOffset < len(MTORRIntervalTime)-1 {
+					MTORRIntervalOffset++
+				}
+
+				// warning 同一线程下有callback的处理，所以不能进行长时间的ezsp命令
+				//common.Log.Infof("Print Address table...")
+				//ezsp.NcpPrintAddressTable()
+
+				common.Log.Debugf("MTORR")
+				ezsp.EzspSendManyToOneRouteRequest(ezsp.EMBER_HIGH_RAM_CONCENTRATOR, 0)
+			} else {
+				MTORRIntervalOffset = 0
+			}
 		} else {
-			MTORRIntervalOffset = 0
+			MTORRIntervalCnt--
 		}
 	}
 }
@@ -480,12 +492,23 @@ func MessageSentHandler(outgoingMessageType byte,
 	}
 }
 
+//存储
+var orphanEui64 uint64
+var orphanEui64RecvTime time.Time
+
 func IncomingSenderEui64Handler(eui64 uint64) {
 	now := time.Now()
-	nodeID, err := ezsp.EzspLookupNodeIdByEui64(eui64)
-	if err != nil {
-		common.Log.Errorf("Incoming message lookup nodeID failed: %v", err)
-		return
+
+	nodeID := findNodeIDbyEui64(eui64)
+	if nodeID == ezsp.EMBER_NULL_NODE_ID {
+		var err error
+		nodeID, err = ezsp.EzspLookupNodeIdByEui64(eui64)
+		if err != nil {
+			orphanEui64 = eui64
+			orphanEui64RecvTime = now
+			common.Log.Errorf("Incoming message lookup nodeID failed: %v", err)
+			return
+		}
 	}
 	var node StNode
 	value, ok := Nodes.Load(nodeID) // 从map中加载
@@ -523,7 +546,12 @@ func IncomingMessageHandler(incomingMessageType byte,
 		eui64, err := ezsp.EzspLookupEui64ByNodeId(sender)
 		if err != nil {
 			common.Log.Errorf("Incoming message lookup eui64 failed: %v", err)
-			return
+			//orphanEui64是200ms以内的，认为是同一个node
+			if now.Sub(orphanEui64RecvTime) > time.Millisecond*200 {
+				return
+			}
+			common.Log.Warnf("match with EUI64=%016x recved %v ago", orphanEui64, now.Sub(orphanEui64RecvTime))
+			eui64 = orphanEui64
 		}
 
 		node = StNode{NodeID: sender, Eui64: eui64, LastRecvTime: now}
