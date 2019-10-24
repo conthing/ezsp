@@ -170,6 +170,6 @@ func EzspFrameSend(frmID byte, data []byte) (*EzspFrame, error) {
 		return response, nil
 	case <-time.After(time.Millisecond * 15000):
 		responseChMapClear(seq)
-		return nil, fmt.Errorf("EZSP send %s timeout", frameIDToName(frmID))
+		return nil, fmt.Errorf("EZSP send %s timeout. ASH env \n%s", frameIDToName(frmID), ash.SprintVariables())
 	}
 }

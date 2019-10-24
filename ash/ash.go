@@ -2,6 +2,7 @@ package ash
 
 import (
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/conthing/utils/common"
@@ -85,6 +86,11 @@ func InitVariables() {
 
 	// 最后 ashResetSuccess 变有效
 	ashResetSuccess = true
+}
+
+func SprintVariables() (str string) {
+	return fmt.Sprintf("ashResetSuccess=%v \nashResendTime=%v \nashResendCnt=%v \ntxIndexNext=%v \ntxIndexConfirming=%v \ntxPutPtr=%v \ntxbuffer=%v",
+		ashResetSuccess, ashResendTime, ashResendCnt, txIndexNext, txIndexConfirming, txPutPtr, txbuffer)
 }
 
 func inc(index byte) byte {
@@ -374,19 +380,17 @@ func ashTransceiver(errChan chan error) {
 		acknaksent := false //一次循环发送了ACK就不发DAT了
 		select {
 		case <-ashNeedSendProcess:
-		case <-time.After(time.Millisecond * 50):
+		case <-time.After(time.Millisecond * 200):
 			err := AshSerialRecv()
-			if err != nil {
-				defer func() {
-					errChan <- err
-				}()
+			if err == io.EOF {
+				continue
+			} else if err != nil {
+				errChan <- err
 				return
 			}
 
 			if ashRecvErrorFrame != nil { //todo 将来改成内部处理
-				defer func() {
-					errChan <- fmt.Errorf("ASH recv ERROR frame errcode=0x%x", ashRecvErrorFrame[0])
-				}()
+				errChan <- fmt.Errorf("ASH recv ERROR frame errcode=0x%x", ashRecvErrorFrame[0])
 				return
 			}
 

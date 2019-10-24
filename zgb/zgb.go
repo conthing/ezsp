@@ -60,7 +60,7 @@ func TickRunning(errs chan error) {
 	}
 	common.Log.Infof("EzspNetworkInit OK")
 
-	//err = c4.C4SetPermission(&c4.StPermission{60, []*c4.StPassport{&c4.StPassport{PS: "inSona:IN-C01-WR-4", MAC: "xxxxxxxxxxxxce73"}}})
+	//err = c4.SetPermission(&c4.StPermission{60, []*c4.StPassport{&c4.StPassport{PS: "inSona:IN-C01-WR-4", MAC: "xxxxxxxxxxxxce73"}}})
 	//if err != nil {
 	//	common.Log.Errorf("C4SetPermission failed: %v", err)
 	//}

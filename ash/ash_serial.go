@@ -20,8 +20,8 @@ func AshSerialOpen(name string, baud uint, rtsCts bool) (err error) {
 		StopBits:              1,
 		ParityMode:            serial.PARITY_NONE,
 		RTSCTSFlowControl:     rtsCts,
-		MinimumReadSize:       1,
-		InterCharacterTimeout: 200,
+		MinimumReadSize:       0,
+		InterCharacterTimeout: 100,
 	}
 
 	ashSerialXonXoff = !rtsCts
@@ -62,10 +62,8 @@ func AshSerialRecv() error {
 				common.Log.Errorf("serial recv 0x%02x parse error %v", d, parseErr)
 			}
 		}
-		//} else if err == io.EOF {
-		//log.Print("EOF")
-		//} else if err == serial.ErrTimeout {
-		//log.Print("ErrTimeout")
+	} else if err == io.EOF {
+		return err
 	} else if err != nil {
 		return fmt.Errorf("failed to recv: %v", err)
 	}
