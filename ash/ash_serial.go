@@ -21,7 +21,7 @@ func AshSerialOpen(name string, baud uint, rtsCts bool) (err error) {
 		ParityMode:            serial.PARITY_NONE,
 		RTSCTSFlowControl:     rtsCts,
 		MinimumReadSize:       0,
-		InterCharacterTimeout: 100,
+		InterCharacterTimeout: 50,
 	}
 
 	ashSerialXonXoff = !rtsCts
@@ -53,7 +53,7 @@ func AshSerialRecv() error {
 	if ashSerial == nil {
 		return fmt.Errorf("failed to recv. serial port not open")
 	}
-	data := make([]byte, 128)
+	data := make([]byte, 1200)
 	n, err := ashSerial.Read(data)
 	if n != 0 {
 		for _, d := range data[:n] {

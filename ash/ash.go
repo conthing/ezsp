@@ -37,7 +37,7 @@ var ashResendCnt byte
 var rxIndexNext byte     /*下一个接收报文的index，自己报文中的ackNum*/
 var rxIndexNextSent byte //= byte(7) /*已经发送出去的ackNum*/
 
-var rxbuffer [8][]byte //todo 发送失败怎么清空
+var rxbuffer [8][]byte
 var rxPutPtr byte
 
 var txbuffer [8][]byte //todo 发送失败怎么清空
@@ -123,8 +123,6 @@ func getAckNumForAck() byte { /*发送报文中的ackNum字段，调用此函数
 }
 
 func needAckFrame() bool {
-	/*todo 这里的判断待测试*/
-	//return rxIndexNextSent != rxIndexNext
 	return smallthan(rxIndexNextSent, rxIndexNext)
 }
 
@@ -309,7 +307,7 @@ func ashAckProcess() bool {
 	return false
 }
 
-func ashResendProcess() bool {
+func ashResendProcess() (bool, error) {
 	ashDataFrame := getResendBuffer()
 	if ashDataFrame != nil {
 		if ashResendCnt < 2 {
@@ -326,15 +324,12 @@ func ashResendProcess() bool {
 			resendTime := time.Now().Add(time.Second * time.Duration(3+ashResendCnt)) //第一次间隔3秒，第2次4秒...
 			ashResendTime = &resendTime
 		} else {
-			common.Log.Errorf("ASH resend exceed max count")
 			ashResendCnt = 0
-
-			//todo 这里出错怎么办
-			//txIndexConfirming = inc(txIndexConfirming)
+			return false, fmt.Errorf("ASH resend exceed max count")
 		}
-		return true
+		return true, nil
 	}
-	return false
+	return false, nil
 }
 
 func ashSendProcess() bool {
@@ -380,7 +375,7 @@ func ashTransceiver(errChan chan error) {
 		acknaksent := false //一次循环发送了ACK就不发DAT了
 		select {
 		case <-ashNeedSendProcess:
-		case <-time.After(time.Millisecond * 200):
+		case <-time.After(time.Millisecond * 50):
 			err := AshSerialRecv()
 			if err == io.EOF {
 				continue
@@ -405,8 +400,12 @@ func ashTransceiver(errChan chan error) {
 		}
 		if ashResetSuccess && !acknaksent { // 没收到RSTACK之前不处理
 			if resent == false && ashResendTime != nil && time.Now().After(*ashResendTime) {
-				//todo 这里会一直重发下去，如果NCP没有回复，不会退出
-				resent = ashResendProcess()
+				var fatal error
+				resent, fatal = ashResendProcess()
+				if fatal != nil {
+					errChan <- fatal
+					return
+				}
 			}
 			_ = ashSendProcess()
 		}

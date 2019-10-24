@@ -10,7 +10,6 @@ import (
 	"github.com/conthing/utils/common"
 )
 
-//todo 收发通知，node的online offline deleted通知
 const (
 	C4_PROFILE  = uint16(0xc25d)
 	C4_CLUSTER  = uint16(0x0001)
@@ -138,14 +137,6 @@ func C4Tick() {
 
 func (node *StNode) AttribReportedHandle(z *zcl.ZclContext, cluster uint16, list []*zcl.StAttrib) error {
 	var ok bool
-	// todo check null
-	//if z == nil || z.Context == nil {
-	//	return ErrInternalError
-	//}
-	//dev, ok := z.Context.(models.Device)
-	//if !ok {
-	//	return ErrZclContextTypeMismatch
-	//}
 
 	for _, attrib := range list {
 		switch attrib.AttributeIdentifier {

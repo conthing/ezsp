@@ -314,7 +314,6 @@ func ZclPackLevelCommandStepWithOnOff(mode uint8, size uint8, time uint16) (data
 
 //ZclPackReadAttr means ReadAttribute
 func ZclPackReadAttr(attrId []byte) (data []byte) {
-	//todo zjn 这两个函数写的都有问题
 	payload := make([]byte, 1)
 	payload = append(payload, attrId...)
 	data = zclPackFrame(false, false, false, SendSequence, 0, payload)
