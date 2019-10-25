@@ -53,7 +53,7 @@ func AshSerialRecv() error {
 	if ashSerial == nil {
 		return fmt.Errorf("failed to recv. serial port not open")
 	}
-	data := make([]byte, 1200)
+	data := make([]byte, 120)
 	n, err := ashSerial.Read(data)
 	if n != 0 {
 		for _, d := range data[:n] {

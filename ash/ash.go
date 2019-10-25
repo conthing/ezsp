@@ -382,7 +382,7 @@ func ashTransceiver(errChan chan error) {
 		transceiverStep = 0
 		select {
 		case <-ashNeedSendProcess:
-		case <-time.After(time.Millisecond * 50):
+		case <-time.After(time.Millisecond * 10):
 			transceiverStep = 1
 			err := AshSerialRecv()
 			transceiverStep = 2
