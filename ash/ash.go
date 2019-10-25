@@ -45,6 +45,8 @@ var txPutPtr byte
 var txIndexNext byte       /*下一个发送报文的index，自己报文中的frmNum*/
 var txIndexConfirming byte /*正在等待ACK的报文index*/
 
+var transceiverStep byte
+
 var AshRecv func([]byte) error
 
 var AshTraceOn bool
@@ -93,8 +95,8 @@ func InitVariables() {
 }
 
 func SprintVariables() (str string) {
-	return fmt.Sprintf("ashResetSuccess=%v \nashResendTime=%v \nashResendCnt=%v \ntxIndexNext=%v \ntxIndexConfirming=%v \ntxPutPtr=%v \ntxbuffer=%v",
-		ashResetSuccess, ashResendTime, ashResendCnt, txIndexNext, txIndexConfirming, txPutPtr, txbuffer)
+	return fmt.Sprintf("transceiverStep=%v \nashResetSuccess=%v \nashResendTime=%v \nashResendCnt=%v \ntxIndexNext=%v \ntxIndexConfirming=%v \ntxPutPtr=%v \ntxbuffer=%v",
+		transceiverStep, ashResetSuccess, ashResendTime, ashResendCnt, txIndexNext, txIndexConfirming, txPutPtr, txbuffer)
 }
 
 func inc(index byte) byte {
@@ -377,16 +379,20 @@ func ashTransceiver(errChan chan error) {
 	for {
 		resent := false
 		acknaksent := false //一次循环发送了ACK就不发DAT了
+		transceiverStep = 0
 		select {
 		case <-ashNeedSendProcess:
 		case <-time.After(time.Millisecond * 50):
+			transceiverStep = 1
 			err := AshSerialRecv()
+			transceiverStep = 2
 			if err == io.EOF {
 				continue
 			} else if err != nil {
 				errChan <- err
 				return
 			}
+			transceiverStep = 3
 
 			if ashRecvErrorFrame != nil { //todo 将来改成内部处理
 				errChan <- fmt.Errorf("ASH recv ERROR frame errcode=0x%x", ashRecvErrorFrame[0])
@@ -402,8 +408,11 @@ func ashTransceiver(errChan chan error) {
 				acknaksent = ashAckProcess()
 			}
 		}
+		transceiverStep = 4
 		if ashResetSuccess && !acknaksent { // 没收到RSTACK之前不处理
+			transceiverStep = 5
 			if resent == false && ashResendTime != nil && time.Now().After(*ashResendTime) {
+				transceiverStep = 6
 				var fatal error
 				resent, fatal = ashResendProcess()
 				if fatal != nil {
@@ -411,7 +420,9 @@ func ashTransceiver(errChan chan error) {
 					return
 				}
 			}
+			transceiverStep = 7
 			_ = ashSendProcess()
+			transceiverStep = 8
 		}
 	}
 }
