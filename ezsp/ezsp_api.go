@@ -5,6 +5,7 @@ package ezsp
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/conthing/utils/common"
 )
 
 type EmberError struct {
@@ -101,8 +102,12 @@ func (e EzspError) Error() string {
 	return fmt.Sprintf("%s get error ezspStatus(%s)", e.OccurAt, ezspStatusToString(e.EzspStatus))
 }
 
+var EzspApiTraceOn bool
+
 func ezspApiTrace(format string, v ...interface{}) {
-	//common.Log.Debugf(format, v...)
+	if EzspApiTraceOn {
+		common.Log.Debugf(format, v...)
+	}
 }
 
 func generalResponseError(response *EzspFrame, cmdID byte) error {

@@ -47,8 +47,12 @@ var txIndexConfirming byte /*正在等待ACK的报文index*/
 
 var AshRecv func([]byte) error
 
+var AshTraceOn bool
+
 func ashTrace(format string, v ...interface{}) {
-	//common.Log.Debugf(format, v...)
+	if AshTraceOn {
+		common.Log.Debugf(format, v...)
+	}
 }
 
 // InitVariables 在AshReset成功后必须调用，恢复原始的状态

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/conthing/ezsp/ash"
+	"github.com/conthing/utils/common"
 )
 
 type EzspFrame struct {
@@ -25,8 +26,12 @@ var CallbackCh = make(chan *EzspFrame, 8)
 // 用sequence做key的数组，存放收到的response时发往的ch
 var responseChMap [256]chan *EzspFrame
 
+var EzspFrameTraceOn bool
+
 func ezspFrameTrace(format string, v ...interface{}) {
-	//common.Log.Debugf(format, v...)
+	if EzspFrameTraceOn {
+		common.Log.Debugf(format, v...)
+	}
 }
 
 func (ezspFrame EzspFrame) String() (s string) {

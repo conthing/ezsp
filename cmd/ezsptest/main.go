@@ -13,7 +13,8 @@ import (
 )
 
 type stConfig struct {
-	Serial stSerialConfig `json:"serial"`
+	Serial        stSerialConfig      `json:"serial"`
+	TraceSettings zgb.StTraceSettings `json:"tracesettings"`
 }
 
 type stSerialConfig struct {
@@ -43,6 +44,8 @@ func boot(_ interface{}) (needRetry bool, err error) {
 	}
 
 	common.Log.Infof("load cfg success %+v", cfg)
+
+	zgb.TraceSet(&cfg.TraceSettings)
 
 	err = ash.AshSerialOpen(cfg.Serial.Name, cfg.Serial.Baud, cfg.Serial.RtsCts)
 	if err != nil {

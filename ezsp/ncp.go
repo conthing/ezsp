@@ -8,8 +8,12 @@ import (
 	"github.com/conthing/utils/common"
 )
 
+var NcpTraceOn bool
+
 func ncpTrace(format string, v ...interface{}) {
-	common.Log.Debugf(format, v...)
+	if NcpTraceOn {
+		common.Log.Debugf(format, v...)
+	}
 }
 
 type StNcpCallbacks struct {

@@ -3,3 +3,7 @@ Name = "COM5"
 Baud = 57600
 RtsCts = false
 
+[TraceSettings]
+EzspCallbackTraceOn = true
+NcpTraceOn = true
+NcpFormTraceOn = true

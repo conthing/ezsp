@@ -33,8 +33,12 @@ var readStatusSubstitute = false
 var readBufferOffset = byte(0)
 var readBuffer = make([]byte, 256)
 
+var AshFrameTraceOn bool
+
 func ashFrameTrace(format string, v ...interface{}) {
-	//common.Log.Debugf(format, v...)
+	if AshFrameTraceOn {
+		common.Log.Debugf(format, v...)
+	}
 }
 
 func ashFrameRxByteParse(recvChar byte) (err error) {

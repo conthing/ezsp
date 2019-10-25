@@ -7,6 +7,61 @@ import (
 	"github.com/conthing/utils/common"
 )
 
+type StTraceSettings struct {
+	AshFrameTraceOn     bool
+	AshTraceOn          bool
+	EzspFrameTraceOn    bool
+	EzspApiTraceOn      bool
+	EzspCallbackTraceOn bool
+	NcpTraceOn          bool
+	NcpFormTraceOn      bool
+}
+
+func TraceSet(settings *StTraceSettings) {
+	if settings.AshFrameTraceOn {
+		common.Log.Info("AshFrameTraceOn")
+		ash.AshFrameTraceOn = true
+	} else {
+		ash.AshFrameTraceOn = false
+	}
+	if settings.AshTraceOn {
+		common.Log.Info("AshTraceOn")
+		ash.AshTraceOn = true
+	} else {
+		ash.AshTraceOn = false
+	}
+	if settings.EzspFrameTraceOn {
+		common.Log.Info("EzspFrameTraceOn")
+		ezsp.EzspFrameTraceOn = true
+	} else {
+		ezsp.EzspFrameTraceOn = false
+	}
+	if settings.EzspApiTraceOn {
+		common.Log.Info("EzspApiTraceOn")
+		ezsp.EzspApiTraceOn = true
+	} else {
+		ezsp.EzspApiTraceOn = false
+	}
+	if settings.EzspCallbackTraceOn {
+		common.Log.Info("EzspCallbackTraceOn")
+		ezsp.EzspCallbackTraceOn = true
+	} else {
+		ezsp.EzspCallbackTraceOn = false
+	}
+	if settings.NcpTraceOn {
+		common.Log.Info("NcpTraceOn")
+		ezsp.NcpTraceOn = true
+	} else {
+		ezsp.NcpTraceOn = false
+	}
+	if settings.NcpFormTraceOn {
+		common.Log.Info("NcpFormTraceOn")
+		ezsp.NcpFormTraceOn = true
+	} else {
+		ezsp.NcpFormTraceOn = false
+	}
+}
+
 //TickRunning 定时运行tick
 func TickRunning(errs chan error) {
 	ash.AshStartTransceiver(ezsp.AshRecvImp, errs)

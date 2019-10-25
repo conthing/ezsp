@@ -10,8 +10,12 @@ import (
 	"github.com/conthing/utils/common"
 )
 
+var NcpFormTraceOn bool
+
 func ncpFormTrace(format string, v ...interface{}) {
-	common.Log.Debugf(format, v...)
+	if NcpFormTraceOn {
+		common.Log.Debugf(format, v...)
+	}
 }
 
 // NcpFormNetwork radioChannel=0xff时自动根据能量扫描选择channel

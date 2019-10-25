@@ -19,6 +19,14 @@ type StEzspCallbacks struct {
 	EzspNetworkFoundHandler        func(networkFound *EmberZigbeeNetwork, lqi byte, rssi int8)
 }
 
+var EzspCallbackTraceOn bool
+
+func ezspCallbackTrace(format string, v ...interface{}) {
+	if EzspCallbackTraceOn {
+		common.Log.Debugf(format, v...)
+	}
+}
+
 func EzspCallbackDispatch(cb *EzspFrame) {
 
 	if cb == nil {
@@ -30,7 +38,7 @@ func EzspCallbackDispatch(cb *EzspFrame) {
 		return
 	}
 
-	common.Log.Debugf("callback:%s", frameIDToName(cb.FrameID))
+	ezspCallbackTrace("callback:%s", frameIDToName(cb.FrameID))
 
 	switch cb.FrameID {
 	case EZSP_INCOMING_MESSAGE_HANDLER:
