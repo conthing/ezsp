@@ -435,6 +435,7 @@ func TrustCenterJoinHandler(newNodeId uint16,
 			return
 		}
 		node.Newjoin = false //已经在node表里的，不认为Newjoin
+		node.LastRecvTime = now
 	} else {
 		node = StNode{NodeID: newNodeId, Eui64: newNodeEui64, LastRecvTime: now}
 		node.Newjoin = true
@@ -510,6 +511,7 @@ func IncomingSenderEui64Handler(eui64 uint64) {
 			return
 		}
 		node.Eui64 = eui64
+		node.LastRecvTime = now
 	} else {
 		node = StNode{NodeID: nodeID, Eui64: eui64, LastRecvTime: now}
 	}
@@ -534,6 +536,7 @@ func IncomingMessageHandler(incomingMessageType byte,
 			common.Log.Errorf("Nodes map unsupported type")
 			return
 		}
+		node.LastRecvTime = now
 	} else {
 		eui64, err := ezsp.EzspLookupEui64ByNodeId(sender)
 		if err != nil {
