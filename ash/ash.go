@@ -102,7 +102,7 @@ func inc(index byte) byte {
 }
 
 func smallthan(index1 byte, index2 byte) bool {
-	return ((index1 - index2) & 7) >= 4
+	return ((index1 - index2) & 7) >= 6
 }
 
 func dataFrmPseudoRandom(data []byte) {
@@ -127,11 +127,11 @@ func getAckNumForAck() byte { /*发送报文中的ackNum字段，调用此函数
 }
 
 func needAckFrame() bool {
-	return smallthan(rxIndexNextSent, rxIndexNext)
+	return rxIndexNextSent != rxIndexNext
 }
 
 func sendReady() bool {
-	/*已经收到的acknum==txIndexNext*/
+	/*txIndexConfirming使对方报文中最新的acknum，是acked+1，txIndexNext是发送过的+1，txIndexConfirming在追赶txIndexNext*/
 	return txIndexNext == txIndexConfirming
 }
 
