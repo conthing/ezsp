@@ -61,6 +61,7 @@ func AshSerialRecv() error {
 	n, err := ashSerial.Read(rcvBuff[rcvStartPtr:]) //保留上次busy后剩余字节
 	if n != 0 {
 		len := n + rcvStartPtr
+		rcvStartPtr = 0
 		busy := false
 		offset := 0
 		for i, d := range rcvBuff[:len] {
@@ -72,7 +73,9 @@ func AshSerialRecv() error {
 					busy = true
 					offset = i + 1
 					rcvStartPtr = len - offset
-					common.Log.Warnf("recv %d bytes but %d bytes remain unhandled", len, rcvStartPtr)
+					if rcvStartPtr != 0 {
+						common.Log.Warnf("recv %d bytes but %d bytes remain unhandled", len, rcvStartPtr)
+					}
 				} else if parseErr != nil {
 					common.Log.Errorf("serial recv 0x%02x parse error %v", d, parseErr)
 				}
