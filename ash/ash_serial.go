@@ -1,6 +1,7 @@
 package ash
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
@@ -10,6 +11,7 @@ import (
 
 var ashSerial io.ReadWriteCloser
 var ashSerialXonXoff bool
+var errAshRecvHandleBusy = errors.New("Recv handle busy")
 
 //AshSerialOpen 打开串口
 func AshSerialOpen(name string, baud uint, rtsCts bool) (err error) {
@@ -43,24 +45,39 @@ func AshSerialClose() {
 
 func AshSerialFlush() {
 	if ashSerial != nil {
-		data := make([]byte, 128)
-		ashSerial.Read(data)
+		dummy := make([]byte, 1200)
+		ashSerial.Read(dummy)
 	}
 }
+
+var rcvBuff = make([]byte, 1200)
+var rcvStartPtr = 0
 
 // AshSerialRecv 串口接收
 func AshSerialRecv() error {
 	if ashSerial == nil {
 		return fmt.Errorf("failed to recv. serial port not open")
 	}
-	data := make([]byte, 120)
-	n, err := ashSerial.Read(data)
+	n, err := ashSerial.Read(rcvBuff[rcvStartPtr:]) //保留上次busy后剩余字节
 	if n != 0 {
-		for _, d := range data[:n] {
-			parseErr := ashFrameRxByteParse(d)
-			if parseErr != nil {
-				common.Log.Errorf("serial recv 0x%02x parse error %v", d, parseErr)
+		len := n + rcvStartPtr
+		busy := false
+		offset := 0
+		for i, d := range rcvBuff[:len] {
+			if busy {
+				rcvBuff[i-offset] = d //将后面的剩余字节搬到前面来
+			} else {
+				parseErr := ashFrameRxByteParse(d)
+				if parseErr == errAshRecvHandleBusy {
+					busy = true
+					offset = i + 1
+					rcvStartPtr = len - offset
+					common.Log.Warnf("recv %d bytes but %d bytes remain unhandled", len, rcvStartPtr)
+				} else if parseErr != nil {
+					common.Log.Errorf("serial recv 0x%02x parse error %v", d, parseErr)
+				}
 			}
+
 		}
 	} else if err == io.EOF {
 		return err

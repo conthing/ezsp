@@ -103,7 +103,7 @@ func inc(index byte) byte {
 	return byte((index + 1) & 7)
 }
 
-func smallthan(index1 byte, index2 byte) bool {
+func smallthan(index1 byte, index2 byte) bool { // 差值在-1或-2都是smallthan，-3认为是+5了
 	return ((index1 - index2) & 7) >= 6
 }
 
@@ -233,6 +233,11 @@ func ashRecvFrame(frame []byte) error {
 			//	}
 			//}
 			ashRejectCondition = false
+			if !smallthan(rxIndexNextSent, rxIndexNext) {
+				// rxIndexNext刚增加过，如果rxIndexNextSent-rxIndexNext达到-3，接收报文堆积了3条，需要先处理
+				return errAshRecvHandleBusy
+			}
+
 		} else if smallthan(rxIndexNext, frmNum) {
 			ashRejectCondition = true
 			return fmt.Errorf("ASH recv discontinuous frame sequence. frmNum=%d, reTx=%v, expect frmNum=%d < 0x%x", frmNum, reTx, rxIndexNext, frame)
@@ -382,7 +387,7 @@ func ashTransceiver(errChan chan error) {
 		transceiverStep = 0
 		select {
 		case <-ashNeedSendProcess:
-		case <-time.After(time.Millisecond * 10):
+		case <-time.After(time.Millisecond * 200):
 			transceiverStep = 1
 			err := AshSerialRecv()
 			transceiverStep = 2
