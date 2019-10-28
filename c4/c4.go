@@ -1,6 +1,7 @@
 package c4
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -52,6 +53,10 @@ const (
 	C4_NODE_STATUS_REBOOT  = byte(2)
 	C4_NODE_STATUS_DELETED = byte(3)
 )
+
+var ErrMeshNotExist = errors.New("Mesh not exist")
+var ErrMeshAlreadyExist = errors.New("Mesh already exist")
+var ErrMeshNotEmpty = errors.New("Not empty mesh")
 
 type StNode struct {
 	NodeID       uint16
@@ -663,14 +668,16 @@ func RemoveDevice(eui64 uint64) (err error) {
 
 func RemoveNetwork() (err error) {
 	common.Log.Debugf("RemoveNetwork()")
+	if !ezsp.MeshStatusUp {
+		return ErrMeshNotExist
+	}
 	notEmpty := false
 	Nodes.Range(func(key, value interface{}) bool {
 		notEmpty = true
 		return false
 	})
 	if notEmpty {
-		err = fmt.Errorf("Node map not empty")
-		return
+		return ErrMeshNotEmpty
 	}
 	err = ezsp.EzspLeaveNetwork()
 	return
@@ -683,5 +690,9 @@ func SetRadioChannel(channel byte) (err error) {
 
 func FormNetwork(radioChannel byte) (err error) {
 	common.Log.Debugf("FormNetwork(%d)", radioChannel)
-	return ezsp.NcpFormNetwork(radioChannel)
+	if ezsp.MeshStatusUp {
+		return ErrMeshAlreadyExist
+	} else {
+		return ezsp.NcpFormNetwork(radioChannel)
+	}
 }
