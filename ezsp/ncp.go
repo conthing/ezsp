@@ -300,10 +300,6 @@ func EzspIncomingRouteErrorHandler(emberStatus byte, target uint16) {
 	NcpSendMTORR()
 }
 
-func EzspIncomingRouteRecordHandler(source uint16, sourceEui uint64, lastHopLqi byte, lastHopRssi int8, relay []uint16) {
-
-}
-
 func EzspTrustCenterJoinHandler(newNodeId uint16,
 	newNodeEui64 uint64,
 	deviceUpdateStatus byte,

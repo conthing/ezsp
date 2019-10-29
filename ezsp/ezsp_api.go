@@ -5,6 +5,7 @@ package ezsp
 import (
 	"encoding/binary"
 	"fmt"
+
 	"github.com/conthing/utils/common"
 )
 
@@ -749,6 +750,31 @@ func EzspSetRadioChannel(channel byte) (err error) {
 					return
 				}
 				ezspApiTrace("EzspSetRadioChannel(%d)", channel)
+			}
+		}
+	}
+	return
+}
+
+func EzspSetSourceRoute(destination uint16, relayList []uint16) (err error) {
+	relayCount := len(relayList)
+
+	data := []byte{byte(destination), byte(destination >> 8), byte(relayCount)}
+	for _, r := range relayList {
+		data = append(data, byte(r), byte(r>>8))
+	}
+	response, err := EzspFrameSend(EZSP_SET_SOURCE_ROUTE, data)
+	if err == nil {
+		err = generalResponseError(response, EZSP_SET_SOURCE_ROUTE)
+		if err == nil {
+			err = generalResponseLengthEqual(response, EZSP_SET_SOURCE_ROUTE, 1)
+			if err == nil {
+				emberStatus := response.Data[0]
+				if emberStatus != EMBER_SUCCESS {
+					err = EmberError{emberStatus, fmt.Sprintf("EzspSetSourceRoute(0x%x)", destination)}
+					return
+				}
+				ezspApiTrace("EzspSetSourceRoute(0x%x)", destination)
 			}
 		}
 	}

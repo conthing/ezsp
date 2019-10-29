@@ -8,13 +8,14 @@ import (
 )
 
 type StTraceSettings struct {
-	AshFrameTraceOn     bool
-	AshTraceOn          bool
-	EzspFrameTraceOn    bool
-	EzspApiTraceOn      bool
-	EzspCallbackTraceOn bool
-	NcpTraceOn          bool
-	NcpFormTraceOn      bool
+	AshFrameTraceOn       bool
+	AshTraceOn            bool
+	EzspFrameTraceOn      bool
+	EzspApiTraceOn        bool
+	EzspCallbackTraceOn   bool
+	NcpTraceOn            bool
+	NcpFormTraceOn        bool
+	NcpSourceRouteTraceOn bool
 }
 
 func TraceSet(settings *StTraceSettings) {
@@ -59,6 +60,12 @@ func TraceSet(settings *StTraceSettings) {
 		ezsp.NcpFormTraceOn = true
 	} else {
 		ezsp.NcpFormTraceOn = false
+	}
+	if settings.NcpSourceRouteTraceOn {
+		common.Log.Info("NcpSourceRouteTraceOn")
+		ezsp.NcpSourceRouteTraceOn = true
+	} else {
+		ezsp.NcpSourceRouteTraceOn = false
 	}
 }
 

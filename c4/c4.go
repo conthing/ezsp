@@ -629,6 +629,7 @@ func SendUnicast(eui64 uint64, profileId uint16, clusterId uint16,
 	}
 
 	// todo 设置路由表
+	err = ezsp.NcpSetSourceRoute(nodeID)
 	_, err = ezsp.EzspSendUnicast(ezsp.EMBER_OUTGOING_DIRECT, nodeID, &apsFrame, tag, message)
 	return
 }
