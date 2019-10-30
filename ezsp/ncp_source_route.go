@@ -98,6 +98,7 @@ func sourceRouteAddEntry(id uint16, furtherIndex byte) byte {
 }
 
 func EzspIncomingRouteRecordHandler(source uint16, sourceEui uint64, lastHopLqi byte, lastHopRssi int8, relay []uint16) {
+	ncpSourceRouteTrace("NCP get source route for 0x%04x, %v", source, relay)
 	// The source of the route record is furthest from the gateway. We start there
 	// and work closer.
 	previous := sourceRouteAddEntry(source, NULL_INDEX)
@@ -132,8 +133,10 @@ func ncpFindSourceRoute(destination uint16) (exist bool, relayList []uint16) {
 func NcpSetSourceRoute(id uint16) (err error) {
 	exist, relayList := ncpFindSourceRoute(id)
 	if !exist {
+		ncpSourceRouteTrace("NCP cannot find source route for 0x%04x, send directly", id)
 		return nil //不存在没有错，直接发送
 	}
+	ncpSourceRouteTrace("NCP set source route for 0x%04x, %v", id, relayList)
 	err = EzspSetSourceRoute(id, relayList)
 	return
 }
