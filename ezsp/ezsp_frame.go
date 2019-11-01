@@ -142,12 +142,16 @@ func AshRecvImp(data []byte) error {
 	}
 	return nil
 }
+
 var SendStep = 0
+
 func EzspFrameSend(frmID byte, data []byte) (*EzspFrame, error) {
+	fmt.Printf("***SendStep=%d before\n", SendStep)
 	SendStep = 1
 	mutex.Lock()
 	defer func() {
 		mutex.Unlock()
+		SendStep = 0
 	}()
 	seq := getSequence()
 	ashFrm := []byte{seq, 0, frmID}
