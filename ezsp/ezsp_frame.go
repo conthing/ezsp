@@ -120,26 +120,32 @@ func ezspFrameParse(data []byte) (*EzspFrame, error) {
 
 // AshRecvImp ASH串口接收处理，运行在串口收发线程中
 func AshRecvImp(data []byte) error {
+	ash.TransceiverStep = 31
 	ezspFrame, err := ezspFrameParse(data)
 	if err != nil {
 		return fmt.Errorf("EZSP frame parse error: %v", err)
 	}
+	ash.TransceiverStep = 32
 	ezspFrameTrace("EZSP recv < %s", ezspFrame)
 	if ezspFrame.Callback == 2 { // async callback 给 CallbackCh
 		CallbackCh <- ezspFrame
 		return nil
 	}
+	ash.TransceiverStep = 33
 	if ezspFrame.Callback == 1 { // sync callback 也给 CallbackCh，另外发个nil给堵塞的发送函数
 		CallbackCh <- ezspFrame
 	}
+	ash.TransceiverStep = 34
 	ch := responseChMap[ezspFrame.Sequence]
 	if ch != nil {
 		if ezspFrame.Callback == 1 {
 			ch <- nil
 			return nil
 		}
+		ash.TransceiverStep = 35
 		ch <- ezspFrame
 	}
+	ash.TransceiverStep = 36
 	return nil
 }
 
