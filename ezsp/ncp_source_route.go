@@ -1,8 +1,9 @@
 package ezsp
 
 import (
-	"github.com/conthing/utils/common"
 	"github.com/conthing/ezsp/ash"
+	"github.com/conthing/ezsp/ezsp"
+	"github.com/conthing/utils/common"
 )
 
 type StSourceRouteTableEntry struct {
@@ -137,7 +138,7 @@ func NcpSetSourceRoute(id uint16) (err error) {
 		ncpSourceRouteTrace("NCP cannot find source route for 0x%04x, send directly", id)
 		return nil //不存在没有错，直接发送
 	}
-	ncpSourceRouteTrace("NCP set source route for 0x%04x, %v, \n%s", id, relayList, ash.SprintVariables())
+	ncpSourceRouteTrace("NCP set source route for 0x%04x, %v, \nTranceiverStep=%d SendStep=%d", id, relayList, ash.TransceiverStep, ezsp.SendStep)
 	err = EzspSetSourceRoute(id, relayList)
 	return
 }

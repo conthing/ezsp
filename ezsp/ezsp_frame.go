@@ -142,8 +142,9 @@ func AshRecvImp(data []byte) error {
 	}
 	return nil
 }
-
+var SendStep = 0
 func EzspFrameSend(frmID byte, data []byte) (*EzspFrame, error) {
+	SendStep = 1
 	mutex.Lock()
 	defer func() {
 		mutex.Unlock()
@@ -154,12 +155,15 @@ func EzspFrameSend(frmID byte, data []byte) (*EzspFrame, error) {
 		ashFrm = append(ashFrm, data...)
 	}
 
+	SendStep = 2
 	// 创建接收回复的ch
 	responseChMapClear(seq) //如果上一轮sequence发送时超时，有可能没有close
+	SendStep = 3
 	responseChMap[seq] = make(chan *EzspFrame, 1)
 	if responseChMap[seq] == nil {
 		return nil, fmt.Errorf("EZSP send %s(seq=%d) failed: make chan failed", frameIDToName(frmID), seq)
 	}
+	SendStep = 4
 
 	err := ash.AshSend(ashFrm)
 	if err != nil {
@@ -167,14 +171,18 @@ func EzspFrameSend(frmID byte, data []byte) (*EzspFrame, error) {
 		return nil, fmt.Errorf("EZSP send %s(seq=%d) failed: ash send failed: %v", frameIDToName(frmID), seq, err)
 	}
 	ezspFrameTrace("EZSP send > %s 0x%x", frameIDToName(frmID), data)
+	SendStep = 5
 
 	select {
 	case response := <-responseChMap[seq]:
+		SendStep = 6
 		close(responseChMap[seq])
 		responseChMap[seq] = nil
 		return response, nil
 	case <-time.After(time.Millisecond * 15000):
+		SendStep = 7
 		responseChMapClear(seq)
+		SendStep = 8
 		return nil, fmt.Errorf("EZSP send %s timeout. ASH env \n%s", frameIDToName(frmID), ash.SprintVariables())
 	}
 }
