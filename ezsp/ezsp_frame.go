@@ -145,12 +145,13 @@ func AshRecvImp(data []byte) error {
 
 var SendStep = 0
 
-func EzspFrameSendBeforeWait(frmID byte, data []byte) (byte, error) {
+func EzspFrameSend(frmID byte, data []byte) (*EzspFrame, error) {
 	fmt.Printf("***SendStep=%d before\n", SendStep)
 	SendStep = 1
 	mutex.Lock()
 	defer func() {
 		mutex.Unlock()
+		SendStep = 0
 	}()
 	seq := getSequence()
 	ashFrm := []byte{seq, 0, frmID}
@@ -164,25 +165,18 @@ func EzspFrameSendBeforeWait(frmID byte, data []byte) (byte, error) {
 	SendStep = 3
 	responseChMap[seq] = make(chan *EzspFrame, 1)
 	if responseChMap[seq] == nil {
-		return seq, fmt.Errorf("EZSP send %s(seq=%d) failed: make chan failed", frameIDToName(frmID), seq)
+		return nil, fmt.Errorf("EZSP send %s(seq=%d) failed: make chan failed", frameIDToName(frmID), seq)
 	}
 	SendStep = 4
 
 	err := ash.AshSend(ashFrm)
 	if err != nil {
 		responseChMapClear(seq)
-		return seq, fmt.Errorf("EZSP send %s(seq=%d) failed: ash send failed: %v", frameIDToName(frmID), seq, err)
+		return nil, fmt.Errorf("EZSP send %s(seq=%d) failed: ash send failed: %v", frameIDToName(frmID), seq, err)
 	}
 	ezspFrameTrace("EZSP send > %s 0x%x", frameIDToName(frmID), data)
 	SendStep = 5
-	return seq, nil
-}
 
-func EzspFrameSend(frmID byte, data []byte) (*EzspFrame, error) {
-	seq, err := EzspFrameSendBeforeWait(frmID, data)
-	if err != nil {
-		return nil, err
-	}
 	select {
 	case response := <-responseChMap[seq]:
 		SendStep = 6
