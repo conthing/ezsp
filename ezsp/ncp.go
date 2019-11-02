@@ -257,6 +257,8 @@ func EzspMessageSentHandler(outgoingMessageType byte,
 	messageTag byte,
 	emberStatus byte,
 	message []byte) {
+	ncpTrace("%s message sent(%s) to 0x%04x, Profile 0x%04x, Cluster 0x%04x: 0x%x",
+		outgoingMessageTypeToString(outgoingMessageType), emberStatusToString(emberStatus), indexOrDestination, apsFrame.ProfileId, apsFrame.ClusterId, message)
 	if NcpCallbacks.NcpMessageSentHandler != nil {
 		NcpCallbacks.NcpMessageSentHandler(outgoingMessageType,
 			indexOrDestination,
@@ -267,8 +269,8 @@ func EzspMessageSentHandler(outgoingMessageType byte,
 	}
 }
 
-//todo source route table 没处理
 func EzspIncomingSenderEui64Handler(senderEui64 uint64) {
+	ncpTrace("Incoming sender EUI64 %016x", senderEui64)
 	if NcpCallbacks.NcpIncomingSenderEui64Handler != nil {
 		NcpCallbacks.NcpIncomingSenderEui64Handler(senderEui64)
 	}
@@ -297,6 +299,7 @@ func EzspIncomingMessageHandler(incomingMessageType byte,
 }
 
 func EzspIncomingRouteErrorHandler(emberStatus byte, target uint16) {
+	ncpTrace("Incoming route error %s for 0x%04x", emberStatusToString(emberStatus), target)
 	NcpSendMTORR()
 }
 
@@ -305,6 +308,7 @@ func EzspTrustCenterJoinHandler(newNodeId uint16,
 	deviceUpdateStatus byte,
 	joinDecision byte,
 	parentOfNewNode uint16) {
+	ncpTrace("Trust center has 0x%04x(%016x) joined(%d)", newNodeId, newNodeEui64, deviceUpdateStatus)
 	if NcpCallbacks.NcpTrustCenterJoinHandler != nil {
 		NcpCallbacks.NcpTrustCenterJoinHandler(newNodeId, newNodeEui64, deviceUpdateStatus, joinDecision, parentOfNewNode)
 	}

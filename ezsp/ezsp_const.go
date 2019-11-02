@@ -1611,6 +1611,23 @@ const (
 	EMBER_OUTGOING_BROADCAST = byte(4)
 )
 
+// ID to string
+func outgoingMessageTypeToString(outgoingMessageType byte) string {
+	name, ok := outgoingMessageTypeStringMap[outgoingMessageType]
+	if !ok {
+		name = fmt.Sprintf("UNKNOWN_MESSAGE_TYPE_%02X", outgoingMessageType)
+	}
+	return name
+}
+
+var outgoingMessageTypeStringMap = map[byte]string{
+	EMBER_OUTGOING_DIRECT:            "DIRECT",
+	EMBER_OUTGOING_VIA_ADDRESS_TABLE: "VIA_ADDRESS_TABLE",
+	EMBER_OUTGOING_VIA_BINDING:       "VIA_BINDING",
+	EMBER_OUTGOING_MULTICAST:         "MULTICAST",
+	EMBER_OUTGOING_BROADCAST:         "BROADCAST",
+}
+
 // **************** Incoming Message type ****************
 const (
 	/** Unicast. */
