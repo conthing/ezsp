@@ -109,8 +109,10 @@ var MTORRIntervalCnt = 0
 
 func C4Tick() {
 	select {
-	case cb := <-ezsp.CallbackCh:
-		ezsp.EzspCallbackDispatch(cb)
+	case cbs := <-ezsp.CallbackCh:
+		for _, cb := range cbs {
+			ezsp.EzspCallbackDispatch(cb)
+		}
 	case <-time.After(time.Second * 3):
 		Nodes.Range(func(key, value interface{}) bool {
 			if node, ok := value.(StNode); ok {
