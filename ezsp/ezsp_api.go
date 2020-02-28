@@ -718,6 +718,82 @@ func EzspSendUnicast(outgoingMessageType byte, indexOrDestination uint16, apsFra
 	return
 }
 
+func EzspSendBroadcast(destination uint16, apsFrame *EmberApsFrame, radius byte, messageTag byte, message []byte) (sequence byte, err error) {
+	data := []byte{
+		byte(destination),
+		byte(destination >> 8),
+		byte(apsFrame.ProfileId),
+		byte(apsFrame.ProfileId >> 8),
+		byte(apsFrame.ClusterId),
+		byte(apsFrame.ClusterId >> 8),
+		apsFrame.SourceEndpoint,
+		apsFrame.DestinationEndpoint,
+		byte(apsFrame.Options),
+		byte(apsFrame.Options >> 8),
+		byte(apsFrame.GroupId),
+		byte(apsFrame.GroupId >> 8),
+		apsFrame.Sequence,
+		radius,
+		messageTag,
+		byte(len(message))}
+	data = append(data, message...)
+	response, err := EzspFrameSend(EZSP_SEND_BROADCAST, data)
+	if err == nil {
+		err = generalResponseError(response, EZSP_SEND_BROADCAST)
+		if err == nil {
+			err = generalResponseLengthEqual(response, EZSP_SEND_BROADCAST, 2)
+			if err == nil {
+				emberStatus := response.Data[0]
+				sequence = response.Data[1]
+				if emberStatus != EMBER_SUCCESS {
+					err = EmberError{emberStatus, "EzspSendBroadcast()"}
+					return
+				}
+				ezspApiTrace("EzspSendBroadcast() return seq=%d", sequence)
+			}
+		}
+	}
+	return
+}
+
+func EzspSendReply(sender uint16, apsFrame *EmberApsFrame, message []byte) (err error) {
+	if message == nil {
+		message = make([]byte, 0)
+	}
+	data := []byte{
+		byte(sender),
+		byte(sender >> 8),
+		byte(apsFrame.ProfileId),
+		byte(apsFrame.ProfileId >> 8),
+		byte(apsFrame.ClusterId),
+		byte(apsFrame.ClusterId >> 8),
+		apsFrame.SourceEndpoint,
+		apsFrame.DestinationEndpoint,
+		byte(apsFrame.Options),
+		byte(apsFrame.Options >> 8),
+		byte(apsFrame.GroupId),
+		byte(apsFrame.GroupId >> 8),
+		apsFrame.Sequence,
+		byte(len(message))}
+	data = append(data, message...)
+	response, err := EzspFrameSend(EZSP_SEND_REPLY, data)
+	if err == nil {
+		err = generalResponseError(response, EZSP_SEND_REPLY)
+		if err == nil {
+			err = generalResponseLengthEqual(response, EZSP_SEND_REPLY, 1)
+			if err == nil {
+				emberStatus := response.Data[0]
+				if emberStatus != EMBER_SUCCESS {
+					err = EmberError{emberStatus, "EzspSendReply()"}
+					return
+				}
+				ezspApiTrace("EzspSendReply() return")
+			}
+		}
+	}
+	return
+}
+
 func EzspLeaveNetwork() (err error) {
 	response, err := EzspFrameSend(EZSP_LEAVE_NETWORK, []byte{})
 	if err == nil {

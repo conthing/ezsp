@@ -118,6 +118,12 @@ func NcpConfig() (err error) {
 	}
 	ncpTrace("EzspSetPolicy EZSP_MESSAGE_TAG_AND_CONTENTS_IN_CALLBACK")
 
+	err = EzspSetPolicy(EZSP_UNICAST_REPLIES_POLICY, EZSP_HOST_WILL_NOT_SUPPLY_REPLY)
+	if err != nil {
+		return fmt.Errorf("EzspSetPolicy failed: %v", err)
+	}
+	ncpTrace("EzspSetPolicy EZSP_HOST_WILL_NOT_SUPPLY_REPLY")
+
 	err = EzspSetValue_MAXIMUM_INCOMING_TRANSFER_SIZE(84)
 	if err != nil {
 		return fmt.Errorf("EzspSetValue_MAXIMUM_INCOMING_TRANSFER_SIZE failed: %v", err)
