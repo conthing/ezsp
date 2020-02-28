@@ -697,6 +697,6 @@ func FormNetwork(radioChannel byte) (err error) {
 	if ezsp.MeshStatusUp {
 		return ErrMeshAlreadyExist
 	} else {
-		return ezsp.NcpFormNetwork(radioChannel)
+		return ezsp.NcpFormNetwork(radioChannel, true)
 	}
 }

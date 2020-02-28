@@ -4,6 +4,7 @@ import (
 	"github.com/conthing/ezsp/ash"
 	"github.com/conthing/ezsp/c4"
 	"github.com/conthing/ezsp/ezsp"
+	"github.com/conthing/ezsp/hetu"
 
 	"github.com/conthing/utils/common"
 )
@@ -70,6 +71,34 @@ func TraceSet(settings *StTraceSettings) {
 	}
 }
 
+type StNetworkSettings struct {
+	NetworkType   string
+	SecurityLevel uint16
+}
+
+var networkSettings StNetworkSettings
+
+func NetworkSet(settings *StNetworkSettings) {
+	networkSettings = *settings
+}
+
+func networkInit() {
+	common.Log.Infof("network type %s", networkSettings.NetworkType)
+	if networkSettings.NetworkType == "hetu" {
+		hetu.Init()
+	} else {
+		c4.C4Init()
+	}
+}
+
+func networkSecurityLevelInit() {
+	err := ezsp.EzspSetConfigurationValue(ezsp.EZSP_CONFIG_SECURITY_LEVEL, networkSettings.SecurityLevel)
+	if err != nil {
+		common.Log.Errorf("EZSP_CONFIG_SECURITY_LEVEL write %d failed: %v", networkSettings.SecurityLevel, err)
+	}
+	common.Log.Debugf("Set EZSP_CONFIG_SECURITY_LEVEL = %d", networkSettings.SecurityLevel)
+}
+
 //TickRunning 定时运行tick
 func TickRunning(errs chan error) {
 	ash.AshStartTransceiver(ezsp.AshRecvImp, errs)
@@ -78,7 +107,7 @@ func TickRunning(errs chan error) {
 	if err != nil {
 		common.Log.Errorf("AshReset failed: %v", err)
 	} else {
-		c4.C4Init()
+		networkInit()
 		ezsp.EzspFrameInitVariables() // 有些变量在ASH的接收线程里会被使用
 		ash.InitVariables()           // 上层的变量初始化完成后，最后调用ASH的变量初始化
 		common.Log.Info("AshReset OK")
@@ -96,6 +125,8 @@ func TickRunning(errs chan error) {
 		common.Log.Errorf("NcpConfig failed: %v", err)
 	}
 
+	networkSecurityLevelInit()
+
 	//common.Log.Infof("Print All Configurations...")
 	//ezsp.NcpPrintAllConfigurations()
 
@@ -111,7 +142,7 @@ func TickRunning(errs chan error) {
 	}
 	common.Log.Infof("NCP EUI64 = %016x", eui64)
 
-	//err = ezsp.NcpFormNetwork(0xff)
+	//err = ezsp.NcpFormNetwork(0xff,networkSettings.SecurityLevel != 0)
 	//if err != nil {
 	//	common.Log.Errorf("NcpFormNetwork failed: %v", err)
 	//}
@@ -129,7 +160,19 @@ func TickRunning(errs chan error) {
 	//}
 	//common.Log.Infof("C4SetPermission for 60 seconds")
 
+	//err = hetu.SetPermission(255)
+	//if err != nil {
+	//	common.Log.Errorf("SetPermission failed: %v", err)
+	//}
+	//common.Log.Infof("SetPermission OK")
+
+	//go hetu.RemoveNetwork()
+
 	for {
-		c4.C4Tick()
+		if networkSettings.NetworkType == "hetu" {
+			hetu.HetuTick()
+		} else {
+			c4.C4Tick()
+		}
 	}
 }

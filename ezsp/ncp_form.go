@@ -19,7 +19,7 @@ func ncpFormTrace(format string, v ...interface{}) {
 }
 
 // NcpFormNetwork radioChannel=0xff时自动根据能量扫描选择channel
-func NcpFormNetwork(radioChannel byte) (err error) {
+func NcpFormNetwork(radioChannel byte, tcEnable bool) (err error) {
 	var channelMask uint32
 	if radioChannel == 0xff {
 		channelMask = EMBER_RECOMMENDED_802_15_4_CHANNELS_MASK
@@ -28,11 +28,15 @@ func NcpFormNetwork(radioChannel byte) (err error) {
 	} else {
 		return fmt.Errorf("unsupported channel %d", radioChannel)
 	}
-	err = ncpTrustCenterInit()
-	if err != nil {
-		return
+	if tcEnable {
+		err = ncpTrustCenterInit()
+		if err != nil {
+			common.Log.Errorf("TrustCenterInit failed %v", err)
+			return
+		}
 	}
-	ncpFormTrace("TrustCenterInit OK ... Start Energy Scan")
+	ncpFormTrace("Start Energy Scan")
+	rand.Seed(time.Now().UnixNano())
 	return ncpStartScan(channelMask)
 }
 
