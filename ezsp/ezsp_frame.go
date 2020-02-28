@@ -5,7 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/conthing/ezsp/ash"
+	"ezsp/ash"
+
 	"github.com/conthing/utils/common"
 )
 
@@ -60,8 +61,8 @@ func responseChMapClear(i byte) {
 
 func sendToCallbackChannel(frame *EzspFrame) {
 	callbacks = append(callbacks, frame)
-	select{
-	case CallbackCh<- callbacks:
+	select {
+	case CallbackCh <- callbacks:
 		callbacks = nil
 	default:
 
@@ -163,7 +164,6 @@ func AshRecvImp(data []byte) error {
 var SendStep = 0
 
 func EzspFrameSend(frmID byte, data []byte) (*EzspFrame, error) {
-	fmt.Printf("***SendStep=%d before\n", SendStep)
 	SendStep = 1
 	mutex.Lock()
 	defer func() {

@@ -1,9 +1,10 @@
 package zgb
 
 import (
-	"github.com/conthing/ezsp/ash"
-	"github.com/conthing/ezsp/c4"
-	"github.com/conthing/ezsp/ezsp"
+	"ezsp/ash"
+	"ezsp/c4"
+	"ezsp/ezsp"
+
 	"github.com/conthing/utils/common"
 )
 

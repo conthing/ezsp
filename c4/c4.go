@@ -6,8 +6,9 @@ import (
 	"sync"
 	"time"
 
-	ezsp "github.com/conthing/ezsp/ezsp"
-	"github.com/conthing/ezsp/zcl"
+	"ezsp/ezsp"
+	"ezsp/zcl"
+
 	"github.com/conthing/utils/common"
 )
 
