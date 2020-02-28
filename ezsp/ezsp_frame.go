@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"ezsp/ash"
+	"github.com/conthing/ezsp/ash"
 
 	"github.com/conthing/utils/common"
 )

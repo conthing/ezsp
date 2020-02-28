@@ -1,7 +1,7 @@
 package ezsp
 
 import (
-	"ezsp/ash"
+	"github.com/conthing/ezsp/ash"
 
 	"github.com/conthing/utils/common"
 )
