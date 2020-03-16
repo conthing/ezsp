@@ -618,7 +618,7 @@ func EzspGetAddressTableRemoteNodeId(addressTableIndex byte) (nodeID uint16, err
 	return
 }
 
-func EzspSendManyToOneRouteRequest(concentratorType uint16, radius byte) {
+func EzspSendManyToOneRouteRequest(concentratorType uint16, radius byte) (err error) {
 	response, err := EzspFrameSend(EZSP_SEND_MANY_TO_ONE_ROUTE_REQUEST, []byte{byte(concentratorType), byte(concentratorType >> 8), radius})
 	if err == nil {
 		err = generalResponseError(response, EZSP_SEND_MANY_TO_ONE_ROUTE_REQUEST)

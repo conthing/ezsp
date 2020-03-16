@@ -146,7 +146,7 @@ func EzspScanCompleteHandler(channel byte, emberStatus byte) {
 			// If necessary we could save this failing channel number and start
 			// another Active Scan on this channel later (after this current scan is
 			// complete).
-			common.Log.Error("EZSP_ACTIVE_SCAN failed on ch %d: %s", channel, emberStatusToString(emberStatus))
+			common.Log.Errorf("EZSP_ACTIVE_SCAN failed on ch %d: %s", channel, emberStatusToString(emberStatus))
 			return
 		}
 	}
@@ -275,7 +275,10 @@ func startPanIdScan() {
 	}
 
 	formAndJoinScanType = FORM_AND_JOIN_PAN_ID_SCAN
-	startScan(EZSP_ACTIVE_SCAN, uint32(1)<<channelCache, ACTIVE_SCAN_DURATION)
+	err := startScan(EZSP_ACTIVE_SCAN, uint32(1)<<channelCache, ACTIVE_SCAN_DURATION)
+	if err != nil {
+		common.Log.Errorf("startScan EZSP_ACTIVE_SCAN failed %v", err)
+	}
 }
 
 func startScan(scanType byte, channelMask uint32, duration byte) (err error) {

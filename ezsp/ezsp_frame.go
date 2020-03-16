@@ -123,7 +123,7 @@ func ezspFrameParse(data []byte) (*EzspFrame, error) {
 	isCallbackID := isValidCallbackID(frmID)
 	if isCallbackID && callback == 0 {
 		return nil, fmt.Errorf("EZSP frame callback==%d while ID=%s", callback, frameIDToName(frmID))
-	} else if isCallbackID == false && callback != 0 {
+	} else if !isCallbackID && callback != 0 {
 		return nil, fmt.Errorf("EZSP frame callback==%d while ID=%s", callback, frameIDToName(frmID))
 	}
 

@@ -951,7 +951,7 @@ var frameIDNameMap = map[byte]string{
 
 // 判断是否callback
 func isValidCallbackID(callbackID byte) bool {
-	if isCallbackIDMap[allCallbackIDs[0]] == false {
+	if !isCallbackIDMap[allCallbackIDs[0]] {
 		for _, id := range allCallbackIDs {
 			isCallbackIDMap[id] = true
 		}

@@ -322,6 +322,9 @@ func EzspTrustCenterJoinHandler(newNodeId uint16,
 
 func NcpSendMTORR() {
 	if MeshStatusUp {
-		EzspSendManyToOneRouteRequest(EMBER_HIGH_RAM_CONCENTRATOR, 0)
+		err := EzspSendManyToOneRouteRequest(EMBER_HIGH_RAM_CONCENTRATOR, 0)
+		if err != nil {
+			common.Log.Errorf("EzspSendManyToOneRouteRequest failed: %v", err)
+		}
 	}
 }
