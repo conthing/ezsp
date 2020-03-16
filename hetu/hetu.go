@@ -26,6 +26,7 @@ const (
 	C4_MAX_OFFLINE_TIMEOUT = 90 //未收到报文达到90秒，标记为offline
 )
 
+var ZeroTime = time.Unix(0, 0)           // 1970-1-1 00:00:00 既没announce也没有收到有效报文
 var AnnouceFlagTime = time.Unix(3661, 0) // 1970-1-1 01:01:01 表示设备已经announce但还没有收到有效报文的lastrecvtime
 
 var ErrMeshNotExist = errors.New("Mesh not exist")
@@ -179,10 +180,16 @@ func Init() {
 	ezsp.NcpCallbacks.NcpIncomingMessageHandler = IncomingMessageHandler
 }
 
+var hndl_cnt byte
+
 func HetuBroadcast() error {
 	apsFrame := ezsp.EmberApsFrame{ProfileId: 0xabcd, ClusterId: 0xabef, SourceEndpoint: 2, DestinationEndpoint: 2}
-	message := []byte{0x78, 0x87, 0x1b}
-	_, err := ezsp.EzspSendBroadcast(ezsp.EMBER_BROADCAST_ADDRESS, &apsFrame, 30, 0, message)
+	hndl_cnt++
+	if hndl_cnt >= 0xfe {
+		hndl_cnt = 0
+	}
+	message := []byte{0x78, 0x87, hndl_cnt}
+	_, err := ezsp.EzspSendBroadcast(ezsp.EMBER_SLEEPY_BROADCAST_ADDRESS, &apsFrame, 30, 0, message)
 	return err
 }
 
@@ -247,13 +254,14 @@ func IncomingMessageHandler(incomingMessageType byte,
 						return
 					}
 					common.Log.Debugf("Nodes map get %016x", node.Eui64)
-					node.LastRecvTime = now
 					if node.Addr != message[5] {
-						common.Log.Warnf("Node %016x digital addr changed from %d to %d", node.Eui64, node.Addr, message[5])
+						if node.LastRecvTime != AnnouceFlagTime && node.LastRecvTime != ZeroTime {
+							common.Log.Warnf("Node %016x digital addr changed from %d to %d", node.Eui64, node.Addr, message[5])
+						}
 						node.Addr = message[5]
 						forceReport = true
 					}
-
+					node.LastRecvTime = now
 				} else {
 					eui64, err := ezsp.EzspLookupEui64ByNodeId(sender)
 					if err != nil {
@@ -355,14 +363,14 @@ func RemoveNetwork() (err error) {
 	if !ezsp.MeshStatusUp {
 		return ErrMeshNotExist
 	}
-	notEmpty := false
-	Nodes.Range(func(key, value interface{}) bool {
-		notEmpty = true
-		return false
-	})
-	if notEmpty {
-		return ErrMeshNotEmpty
-	}
+	//notEmpty := false
+	// Nodes.Range(func(key, value interface{}) bool {
+	// 	notEmpty = true
+	// 	return false
+	// })
+	// if notEmpty {
+	// 	return ErrMeshNotEmpty
+	// }
 	err = ezsp.EzspLeaveNetwork()
 	return
 }
