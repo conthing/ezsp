@@ -106,9 +106,11 @@ func HetuTick() {
 			}
 			return true
 		})
-		err := HetuBroadcast()
-		if err != nil {
-			common.Log.Errorf("hetu tick: %v", err)
+		if ezsp.MeshStatusUp {
+			err := HetuBroadcast()
+			if err != nil {
+				common.Log.Errorf("hetu tick: %v", err)
+			}
 		}
 	}
 }
@@ -235,8 +237,7 @@ func IncomingMessageHandler(incomingMessageType byte,
 		if apsFrame.ClusterId == 0x0013 { //device announce
 			nodeID := binary.LittleEndian.Uint16(message[1:])
 			eui64 := binary.LittleEndian.Uint64(message[3:])
-			var node StNode
-			node = StNode{NodeID: nodeID, Eui64: eui64, LastRecvTime: AnnouceFlagTime}
+			node := StNode{NodeID: nodeID, Eui64: eui64, LastRecvTime: AnnouceFlagTime}
 			StoreNode(&node)
 			node.RefreshHandle(false)
 			common.Log.Debugf("2 zdo announce: 0x%04x,%016x", nodeID, eui64)
@@ -320,7 +321,7 @@ func SendUnicast(eui64 uint64, profileId uint16, clusterId uint16,
 	}
 
 	// todo 设置路由表
-	err = ezsp.NcpSetSourceRoute(nodeID)
+	_ = ezsp.NcpSetSourceRoute(nodeID)
 	_, err = ezsp.EzspSendUnicast(ezsp.EMBER_OUTGOING_DIRECT, nodeID, &apsFrame, tag, message)
 	return
 }
@@ -363,14 +364,14 @@ func RemoveNetwork() (err error) {
 	if !ezsp.MeshStatusUp {
 		return ErrMeshNotExist
 	}
-	//notEmpty := false
-	// Nodes.Range(func(key, value interface{}) bool {
-	// 	notEmpty = true
-	// 	return false
-	// })
-	// if notEmpty {
-	// 	return ErrMeshNotEmpty
-	// }
+
+	Nodes.Range(func(key, value interface{}) bool {
+		if node, ok := value.(StNode); ok {
+			removeDeviceAndNode(&node)
+		}
+		return true
+	})
+
 	err = ezsp.EzspLeaveNetwork()
 	return
 }
