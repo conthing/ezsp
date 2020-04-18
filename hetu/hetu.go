@@ -143,7 +143,7 @@ func (node *StNode) RefreshHandle(forceReport bool) {
 
 	newState := node.getState()
 	if node.State != newState {
-		common.Log.Debugf("node %016x state %d -> %d", node.Eui64, node.State, newState)
+		common.Log.Debugf("node %016x state %d -> %d, last recv @ %v", node.Eui64, node.State, newState, node.LastRecvTime)
 	}
 
 	if newState != node.State || forceReport {
