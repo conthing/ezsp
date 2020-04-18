@@ -142,7 +142,9 @@ func removeDeviceAndNode(node *StNode) {
 func (node *StNode) RefreshHandle(forceReport bool) {
 
 	newState := node.getState()
-	common.Log.Debugf("newState:%d", newState)
+	if node.State != newState {
+		common.Log.Debugf("node %016x state %d -> %d", node.Eui64, node.State, newState)
+	}
 
 	if newState != node.State || forceReport {
 		if newState == C4_STATE_ONLINE {
