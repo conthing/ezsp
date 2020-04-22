@@ -302,9 +302,7 @@ func nextSequence() byte {
 	return unicastTagSequence
 }
 
-func SendUnicast(eui64 uint64, profileId uint16, clusterId uint16,
-	localEndpoint byte, remoteEndpoint byte,
-	message []byte, needConfirm bool) (err error) {
+func SendUnicast(eui64 uint64, message []byte) (err error) {
 	common.Log.Debugf("SendUnicast %016x ...", eui64)
 
 	nodeID := findNodeIDbyEui64(eui64)
@@ -312,12 +310,13 @@ func SendUnicast(eui64 uint64, profileId uint16, clusterId uint16,
 		return fmt.Errorf("unknow EUI64 %016x", eui64)
 	}
 	var apsFrame ezsp.EmberApsFrame
-	apsFrame.ProfileId = profileId
-	apsFrame.ClusterId = clusterId
-	apsFrame.SourceEndpoint = localEndpoint
-	apsFrame.DestinationEndpoint = remoteEndpoint
-	apsFrame.Options = getSendOptions(nodeID, profileId, clusterId, byte(len(message)))
+	apsFrame.ProfileId = 0xabcd
+	apsFrame.ClusterId = 0xabde
+	apsFrame.SourceEndpoint = 2
+	apsFrame.DestinationEndpoint = 2
+	apsFrame.Options = getSendOptions(nodeID, apsFrame.ProfileId, apsFrame.ClusterId, byte(len(message)))
 	tag := byte(0)
+	needConfirm := false
 	if needConfirm {
 		tag = nextSequence()
 	}
