@@ -151,7 +151,7 @@ func TickRunning(errs chan error) {
 	if networkSettings.NetworkType == "hetu" {
 		data := []byte{0, 1, 0}
 
-		err = ezsp.EzspSetValue(EZSP_VALUE_ENDPOINT_FLAGS, data)
+		err = ezsp.EzspSetValue(ezsp.EZSP_VALUE_ENDPOINT_FLAGS, data)
 		if err != nil {
 			common.Log.Errorf("EzspSetValue EZSP_VALUE_ENDPOINT_FLAGS failed: %v", err)
 		}
