@@ -42,13 +42,13 @@ type StNode struct {
 }
 
 //eui64 要转成 16进制 mac
-type StC4Callbacks struct {
-	C4MessageSentHandler     func(eui64 uint64, profileId uint16, clusterId uint16, localEndpoint byte, remoteEndpoint byte, message []byte, success bool)
-	C4IncomingMessageHandler func(eui64 uint64, message []byte, recvTime time.Time)
-	C4NodeStatusHandler      func(eui64 uint64, nodeID uint16, status byte, addr byte)
+type StHetuCallbacks struct {
+	HetuMessageSentHandler     func(eui64 uint64, profileId uint16, clusterId uint16, localEndpoint byte, remoteEndpoint byte, message []byte, success bool)
+	HetuIncomingMessageHandler func(eui64 uint64, message []byte, recvTime time.Time)
+	HetuNodeStatusHandler      func(eui64 uint64, nodeID uint16, status byte, addr byte)
 }
 
-var C4Callbacks StC4Callbacks
+var HetuCallbacks StHetuCallbacks
 
 var Nodes sync.Map
 
@@ -154,14 +154,14 @@ func (node *StNode) RefreshHandle(forceReport bool) {
 				common.Log.Infof("node 0x%016x reonline", node.Eui64)
 			}
 			common.Log.Debugf("HetuNodeStatusHandler online")
-			if C4Callbacks.C4NodeStatusHandler != nil {
-				C4Callbacks.C4NodeStatusHandler(node.Eui64, node.NodeID, C4_STATE_ONLINE, node.Addr)
+			if HetuCallbacks.HetuNodeStatusHandler != nil {
+				HetuCallbacks.HetuNodeStatusHandler(node.Eui64, node.NodeID, C4_STATE_ONLINE, node.Addr)
 			}
 		} else if newState == C4_STATE_OFFLINE {
 			common.Log.Infof("node 0x%016x offline", node.Eui64)
 			common.Log.Debugf("HetuNodeStatusHandler offline")
-			if C4Callbacks.C4NodeStatusHandler != nil {
-				C4Callbacks.C4NodeStatusHandler(node.Eui64, node.NodeID, C4_STATE_OFFLINE, node.Addr)
+			if HetuCallbacks.HetuNodeStatusHandler != nil {
+				HetuCallbacks.HetuNodeStatusHandler(node.Eui64, node.NodeID, C4_STATE_OFFLINE, node.Addr)
 			}
 		}
 		node.State = newState
@@ -193,7 +193,7 @@ func HetuBroadcast() error {
 		hndl_cnt = 0
 	}
 	message := []byte{0x78, 0x87, hndl_cnt}
-	_, err := ezsp.EzspSendBroadcast(ezsp.EMBER_SLEEPY_BROADCAST_ADDRESS, &apsFrame, 30, 0, message)
+	_, err := ezsp.EzspSendBroadcast(ezsp.EMBER_SLEEPY_BROADCAST_ADDRESS, &apsFrame, 6, 0, message)
 	return err
 }
 
@@ -220,8 +220,8 @@ func MessageSentHandler(outgoingMessageType byte,
 		common.Log.Errorf("0x%04x not found in Nodes map", indexOrDestination)
 		return
 	}
-	if C4Callbacks.C4MessageSentHandler != nil {
-		C4Callbacks.C4MessageSentHandler(node.Eui64, apsFrame.ProfileId, apsFrame.ClusterId, apsFrame.SourceEndpoint, apsFrame.DestinationEndpoint, message, emberStatus == ezsp.EMBER_SUCCESS)
+	if HetuCallbacks.HetuMessageSentHandler != nil {
+		HetuCallbacks.HetuMessageSentHandler(node.Eui64, apsFrame.ProfileId, apsFrame.ClusterId, apsFrame.SourceEndpoint, apsFrame.DestinationEndpoint, message, emberStatus == ezsp.EMBER_SUCCESS)
 	}
 }
 
@@ -278,9 +278,9 @@ func IncomingMessageHandler(incomingMessageType byte,
 				StoreNode(&node)
 				node.RefreshHandle(forceReport)
 				common.Log.Debugf("3 HetuIncomingMessageHandler: %d", node.NodeID)
-				if C4Callbacks.C4IncomingMessageHandler != nil {
+				if HetuCallbacks.HetuIncomingMessageHandler != nil {
 					if node.Eui64 != 0 {
-						C4Callbacks.C4IncomingMessageHandler(node.Eui64, message, now)
+						HetuCallbacks.HetuIncomingMessageHandler(node.Eui64, message, now)
 					} else {
 						common.Log.Errorf("recv msg from NodeID 0x%04x without EUI64", node.NodeID)
 					}
