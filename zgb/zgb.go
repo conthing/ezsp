@@ -127,8 +127,8 @@ func TickRunning(errs chan error) {
 
 	networkSecurityLevelInit()
 
-	//common.Log.Infof("Print All Configurations...")
-	//ezsp.NcpPrintAllConfigurations()
+	common.Log.Infof("Print All Configurations...")
+	ezsp.NcpPrintAllConfigurations()
 
 	rebootCnt, err := ezsp.NcpGetAndIncRebootCnt()
 	if err != nil {
