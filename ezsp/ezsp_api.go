@@ -857,6 +857,34 @@ func EzspSetSourceRoute(destination uint16, relayList []uint16) (err error) {
 	return
 }
 
+func EzspAddEndpoint(endpoint byte, profileId uint16, deviceId uint16, deviceVersion byte, inputClusterList []uint16, outputClusterList []uint16) (err error) {
+	inputClusterCount := len(inputClusterList)
+	outputClusterCount := len(outputClusterList)
+	data := []byte{endpoint, byte(profileId), byte(profileId >> 8), byte(deviceId), byte(deviceId >> 8), deviceVersion, byte(inputClusterCount), byte(outputClusterCount)}
+	for _, r := range inputClusterList {
+		data = append(data, byte(r), byte(r>>8))
+	}
+	for _, r := range outputClusterList {
+		data = append(data, byte(r), byte(r>>8))
+	}
+	response, err := EzspFrameSend(EZSP_ADD_ENDPOINT, data)
+	if err == nil {
+		err = generalResponseError(response, EZSP_ADD_ENDPOINT)
+		if err == nil {
+			err = generalResponseLengthEqual(response, EZSP_ADD_ENDPOINT, 1)
+			if err == nil {
+				ezspStatus := response.Data[0]
+				if ezspStatus != EZSP_SUCCESS {
+					err = EzspError{ezspStatus, fmt.Sprintf("EzspAddEndpoint(%d, ...)", endpoint)}
+					return
+				}
+				ezspApiTrace("EzspAddEndpoint(%d, ...)", endpoint)
+			}
+		}
+	}
+	return
+}
+
 // EzspGetValue API
 
 type EmberVersion struct {
