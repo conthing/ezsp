@@ -243,6 +243,26 @@ func IncomingMessageHandler(incomingMessageType byte,
 			StoreNode(&node)
 			node.RefreshHandle(false)
 			common.Log.Debugf("2 zdo announce: 0x%04x,%016x", nodeID, eui64)
+		} else if apsFrame.ClusterId == 0x0006 { //match desc req
+			seq := message[0]
+			nwkAddrOfInterest := binary.LittleEndian.Uint16(message[1:])
+			profileID := binary.LittleEndian.Uint64(message[3:])
+			common.Log.Debugf("match desc req: 0x%04x, nwkAddrOfInterest:0x%04x, profile:0x%04x", sender, nwkAddrOfInterest, profileID)
+
+			var apsFrame ezsp.EmberApsFrame
+			apsFrame.ProfileId = 0
+			apsFrame.ClusterId = 0x8006
+			apsFrame.SourceEndpoint = 0
+			apsFrame.DestinationEndpoint = 0
+			apsFrame.Options = ezsp.EMBER_APS_OPTION_NONE
+			tag := byte(0)
+
+			// todo 设置路由表
+			_ = ezsp.NcpSetSourceRoute(sender)
+			_, err := ezsp.EzspSendUnicast(ezsp.EMBER_OUTGOING_DIRECT, sender, &apsFrame, tag, []byte{seq, 0, 0, 0, 1, 2})
+			if err != nil {
+				common.Log.Errorf("send match desc resp failed: %v", err)
+			}
 		}
 	} else {
 		if incomingMessageType == ezsp.EMBER_INCOMING_UNICAST {
