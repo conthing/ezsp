@@ -149,7 +149,15 @@ func TickRunning(errs chan error) {
 	//common.Log.Infof("NcpFormNetwork OK")
 
 	if networkSettings.NetworkType == "hetu" {
-		err = ezsp.EzspAddEndpoint(10, 0xabcd, 0x1234, 0x56, []uint16{}, []uint16{0xabde})
+		data := []byte{0, 1, 0}
+
+		err = ezsp.EzspSetValue(EZSP_VALUE_ENDPOINT_FLAGS, data)
+		if err != nil {
+			common.Log.Errorf("EzspSetValue EZSP_VALUE_ENDPOINT_FLAGS failed: %v", err)
+		}
+		common.Log.Debug("EzspSetValue EZSP_VALUE_ENDPOINT_FLAGS success!")
+
+		err = ezsp.EzspAddEndpoint(0, 0xabcd, 0x1234, 0x56, []uint16{}, []uint16{0xabde})
 		if err != nil {
 			common.Log.Errorf("add endpoint failed: %v", err)
 		}
