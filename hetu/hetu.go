@@ -246,7 +246,7 @@ func IncomingMessageHandler(incomingMessageType byte,
 		} else if apsFrame.ClusterId == 0x0006 { //match desc req
 			seq := message[0]
 			nwkAddrOfInterest := binary.LittleEndian.Uint16(message[1:])
-			profileID := binary.LittleEndian.Uint64(message[3:])
+			profileID := binary.LittleEndian.Uint16(message[3:])
 			common.Log.Debugf("match desc req: 0x%04x, nwkAddrOfInterest:0x%04x, profile:0x%04x", sender, nwkAddrOfInterest, profileID)
 
 			var apsFrame ezsp.EmberApsFrame
