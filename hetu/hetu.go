@@ -107,9 +107,14 @@ func HetuTick() {
 			return true
 		})
 		if ezsp.MeshStatusUp {
-			err := HetuBroadcast()
+			common.Log.Debug("Broadcast MTORR and hetu broadcast...")
+			err := ezsp.EzspSendManyToOneRouteRequest(ezsp.EMBER_HIGH_RAM_CONCENTRATOR, 0)
 			if err != nil {
-				common.Log.Errorf("hetu tick: %v", err)
+				common.Log.Errorf("send MTORR failed: %v", err)
+			}
+			err = HetuBroadcast()
+			if err != nil {
+				common.Log.Errorf("hetu broadcast failed: %v", err)
 			}
 		}
 	}
