@@ -108,7 +108,7 @@ func HetuTick() {
 			}
 			return true
 		})
-		if ezsp.MeshStatusUp {
+		if ezsp.MeshStatusUp && count > 0 {
 			//common.Log.Debug("Broadcast MTORR and hetu broadcast...")
 			//err := ezsp.EzspSendManyToOneRouteRequest(ezsp.EMBER_HIGH_RAM_CONCENTRATOR, 0)
 			//if err != nil {
