@@ -109,7 +109,7 @@ func HetuTick() {
 			return true
 		})
 		if ezsp.MeshStatusUp && count > 0 {
-			//common.Log.Debug("Broadcast MTORR and hetu broadcast...")
+			common.Log.Debugf("Broadcast MTORR and hetu broadcast... count(%d)", count)
 			//err := ezsp.EzspSendManyToOneRouteRequest(ezsp.EMBER_HIGH_RAM_CONCENTRATOR, 0)
 			//if err != nil {
 			//	common.Log.Errorf("send MTORR failed: %v", err)
