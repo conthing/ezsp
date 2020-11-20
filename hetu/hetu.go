@@ -98,21 +98,23 @@ func HetuTick() {
 
 	}
 	now := time.Now().Unix()
+	count := 0
 	if now-lastTimeStamp >= 10 {
 		lastTimeStamp = now
 		Nodes.Range(func(key, value interface{}) bool {
 			if node, ok := value.(StNode); ok {
+				count++
 				node.RefreshHandle(false)
 			}
 			return true
 		})
 		if ezsp.MeshStatusUp {
-			common.Log.Debug("Broadcast MTORR and hetu broadcast...")
-			err := ezsp.EzspSendManyToOneRouteRequest(ezsp.EMBER_HIGH_RAM_CONCENTRATOR, 0)
-			if err != nil {
-				common.Log.Errorf("send MTORR failed: %v", err)
-			}
-			err = HetuBroadcast()
+			//common.Log.Debug("Broadcast MTORR and hetu broadcast...")
+			//err := ezsp.EzspSendManyToOneRouteRequest(ezsp.EMBER_HIGH_RAM_CONCENTRATOR, 0)
+			//if err != nil {
+			//	common.Log.Errorf("send MTORR failed: %v", err)
+			//}
+			err := HetuBroadcast()
 			if err != nil {
 				common.Log.Errorf("hetu broadcast failed: %v", err)
 			}
@@ -191,6 +193,7 @@ func Init() {
 
 var hndl_cnt byte
 
+// todo 没有节点是不广播
 func HetuBroadcast() error {
 	apsFrame := ezsp.EmberApsFrame{ProfileId: 0xabcd, ClusterId: 0xabef, SourceEndpoint: 2, DestinationEndpoint: 2}
 	hndl_cnt++
