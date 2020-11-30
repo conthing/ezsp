@@ -14,6 +14,8 @@ import (
 	"github.com/conthing/utils/crc16"
 )
 
+// todo网络参数导入导出
+
 const (
 	ZDO_PROFILE = uint16(0x0000)
 
@@ -110,11 +112,11 @@ func HetuTick() {
 		})
 		if ezsp.MeshStatusUp && count > 0 {
 			common.Log.Debugf("Broadcast MTORR and hetu broadcast... count(%d)", count)
-			//err := ezsp.EzspSendManyToOneRouteRequest(ezsp.EMBER_HIGH_RAM_CONCENTRATOR, 0)
-			//if err != nil {
-			//	common.Log.Errorf("send MTORR failed: %v", err)
-			//}
-			err := HetuBroadcast()
+			err := ezsp.EzspSendManyToOneRouteRequest(ezsp.EMBER_HIGH_RAM_CONCENTRATOR, 0)
+			if err != nil {
+				common.Log.Errorf("send MTORR failed: %v", err)
+			}
+			err = HetuBroadcast()
 			if err != nil {
 				common.Log.Errorf("hetu broadcast failed: %v", err)
 			}
