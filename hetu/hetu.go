@@ -88,9 +88,11 @@ func findNodeIDbyEui64(eui64 uint64) (nodeID uint16) {
 	return
 }
 
-var lastTimeStamp = int64(0)
+var lastHetuBroadcastTime = int64(0)
+var lastMtorrTime = int64(0)
 
 func HetuTick() {
+	var err error
 	select {
 	case cbs := <-ezsp.CallbackCh:
 		for _, cb := range cbs {
@@ -100,9 +102,9 @@ func HetuTick() {
 
 	}
 	now := time.Now().Unix()
-	count := 0
-	if now-lastTimeStamp >= 10 {
-		lastTimeStamp = now
+	count := 0 //节点个数
+	if now-lastHetuBroadcastTime >= 10 {
+		lastHetuBroadcastTime = now
 		Nodes.Range(func(key, value interface{}) bool {
 			if node, ok := value.(StNode); ok {
 				count++
@@ -111,11 +113,16 @@ func HetuTick() {
 			return true
 		})
 		if ezsp.MeshStatusUp && count > 0 {
-			common.Log.Debugf("Broadcast MTORR and hetu broadcast... count(%d)", count)
-			err := ezsp.EzspSendManyToOneRouteRequest(ezsp.EMBER_HIGH_RAM_CONCENTRATOR, 0)
-			if err != nil {
-				common.Log.Errorf("send MTORR failed: %v", err)
+			if now-lastMtorrTime >= 300 {
+				lastMtorrTime = now
+				common.Log.Debugf("MTORR ...")
+				err = ezsp.EzspSendManyToOneRouteRequest(ezsp.EMBER_HIGH_RAM_CONCENTRATOR, 0)
+				if err != nil {
+					common.Log.Errorf("send MTORR failed: %v", err)
+				}
 			}
+
+			common.Log.Debugf("hetu broadcast... count(%d)", count)
 			err = HetuBroadcast()
 			if err != nil {
 				common.Log.Errorf("hetu broadcast failed: %v", err)
