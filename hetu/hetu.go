@@ -102,17 +102,15 @@ func HetuTick() {
 
 	}
 	now := time.Now().Unix()
-	count := 0 //节点个数
 	if now-lastHetuBroadcastTime >= 10 {
 		lastHetuBroadcastTime = now
 		Nodes.Range(func(key, value interface{}) bool {
 			if node, ok := value.(StNode); ok {
-				count++
 				node.RefreshHandle(false)
 			}
 			return true
 		})
-		if ezsp.MeshStatusUp && count > 0 {
+		if ezsp.MeshStatusUp {
 			if now-lastMtorrTime >= 300 {
 				lastMtorrTime = now
 				common.Log.Debugf("MTORR ...")
@@ -122,7 +120,7 @@ func HetuTick() {
 				}
 			}
 
-			common.Log.Debugf("hetu broadcast... count(%d)", count)
+			common.Log.Debugf("hetu broadcast...")
 			err = HetuBroadcast()
 			if err != nil {
 				common.Log.Errorf("hetu broadcast failed: %v", err)
